@@ -1,0 +1,608 @@
+"use client";
+
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { Goal, Settings, Task, DayLog, PomodoroSession, TimeBlock } from "./types";
+import { emptyDayLog, computeScore } from "./score";
+import { defaultSchedule } from "./schedule";
+import { todayKey } from "./time";
+
+const DEFAULT_SETTINGS: Settings = {
+  name: "",
+  wakeMinutes: 8 * 60,
+  sleepMinutes: 22 * 60,
+  focusLength: 25,
+  breakLength: 5,
+  longBreakLength: 15,
+  notifications: true,
+  sound: true,
+  openaiKey: "",
+};
+
+// Neutral starter goals — edit these in Goals to make them yours. The AI/local
+// task sorter weights tasks against whatever goals you set here.
+const SEED_GOALS: Goal[] = [
+  { id: "g1", title: "Ship the product", tier: "highest", weight: 10 },
+  { id: "g2", title: "Grow revenue", tier: "highest", weight: 10 },
+  { id: "g3", title: "Talk to users", tier: "highest", weight: 9 },
+  { id: "g4", title: "Build the team", tier: "high", weight: 7 },
+  { id: "g5", title: "Stay healthy", tier: "high", weight: 7 },
+  { id: "g6", title: "Move every day", tier: "high", weight: 6 },
+  { id: "g7", title: "Sleep on a schedule", tier: "high", weight: 5 },
+];
+
+const SEED_SCHEDULE: TimeBlock[] = defaultSchedule(DEFAULT_SETTINGS);
+
+interface LifeState {
+  hydrated: boolean;
+  settings: Settings;
+  schedule: TimeBlock[];
+  goals: Goal[];
+  tasks: Task[];
+  planConfirmed: boolean;
+  aiSource: "ai" | "local" | null;
+  today: DayLog;
+  history: DayLog[];
+  streak: number;
+  sessions: PomodoroSession[];
+
+  // pomodoro engine — shared across pages, survives navigation + phone-lock
+  pomoPhase: PomoPhase;
+  pomoRunning: boolean;
+  pomoEndsAt: number | null; // epoch ms the running phase ends
+  pomoRemaining: number; // seconds; authoritative when paused
+  pomoCycle: number; // completed focus blocks this session
+
+  // lifecycle
+  ensureToday: () => void;
+  hydrate: () => void;
+
+  // backup / restore
+  exportData: () => string;
+  importData: (raw: string) => { ok: boolean; error?: string };
+
+  // settings & goals
+  updateSettings: (patch: Partial<Settings>) => void;
+
+  // daily schedule (editable rhythm)
+  updateBlock: (id: string, patch: Partial<TimeBlock>) => void;
+  addBlock: () => void;
+  removeBlock: (id: string) => void;
+  resetSchedule: () => void;
+
+  addGoal: (g: Omit<Goal, "id">) => void;
+  updateGoal: (id: string, patch: Partial<Goal>) => void;
+  removeGoal: (id: string) => void;
+
+  // tasks & plan
+  setTasks: (tasks: Task[], source: "ai" | "local") => void;
+  appendTasks: (tasks: Task[], source: "ai" | "local") => void;
+  addTask: (title: string) => void;
+  removeTask: (id: string) => void;
+  editTaskTitle: (id: string, title: string) => void;
+  setTaskPomodoros: (id: string, delta: -1 | 1) => void;
+  reorderTask: (id: string, dir: -1 | 1) => void;
+  toggleTaskDone: (id: string) => void;
+  toggleTaskOptional: (id: string) => void;
+  clearTasks: () => void;
+  confirmPlan: () => void;
+
+  // execution
+  completeBlock: (blockId: string, score: number) => void;
+  uncompleteBlock: (blockId: string) => void;
+  nudgeShift: (deltaMin: number) => void;
+  resetShift: () => void;
+  recordPomodoro: (taskId: string | undefined, taskTitle: string, minutes: number) => void;
+
+  // pomodoro engine controls
+  pomoStart: () => void;
+  pomoPause: () => void;
+  pomoReset: () => void;
+  pomoSkip: () => void;
+  pomoComplete: () => void;
+
+  setFitness: (v: boolean) => void;
+  setDance: (v: boolean) => void;
+  setBeauty: (v: boolean) => void;
+  setSleptOnTime: (v: boolean) => void;
+}
+
+function recompute(today: DayLog, tasks: Task[]): DayLog {
+  const topTaskDone = tasks.find((t) => t.rank === 1)?.done ?? false;
+  return { ...today, score: computeScore(today, topTaskDone) };
+}
+
+type PomoPhase = "focus" | "break" | "long";
+
+/** Length of a pomodoro phase in seconds, from settings. */
+function pomoLen(phase: PomoPhase, s: Settings): number {
+  return (
+    (phase === "focus"
+      ? s.focusLength
+      : phase === "break"
+      ? s.breakLength
+      : s.longBreakLength) * 60
+  );
+}
+
+// One-time localStorage key migration. The store key was renamed
+// skylar-life-os → dont-think-mode; copy any existing data forward so a
+// returning user keeps their goals, history and streak. Runs before persist
+// reads the new key, so hydration picks up the migrated payload.
+const STORAGE_KEY = "dont-think-mode";
+if (typeof window !== "undefined") {
+  try {
+    const legacy = window.localStorage.getItem("skylar-life-os");
+    if (legacy && !window.localStorage.getItem(STORAGE_KEY)) {
+      window.localStorage.setItem(STORAGE_KEY, legacy);
+    }
+  } catch {
+    /* private mode / storage disabled — fall back to fresh state */
+  }
+}
+
+export const useLife = create<LifeState>()(
+  persist(
+    (set, get) => ({
+      hydrated: false,
+      settings: DEFAULT_SETTINGS,
+      schedule: SEED_SCHEDULE,
+      goals: SEED_GOALS,
+      tasks: [],
+      planConfirmed: false,
+      aiSource: null,
+      today: emptyDayLog(todayKey()),
+      history: [],
+      streak: 0,
+      sessions: [],
+
+      pomoPhase: "focus",
+      pomoRunning: false,
+      pomoEndsAt: null,
+      pomoRemaining: DEFAULT_SETTINGS.focusLength * 60,
+      pomoCycle: 0,
+
+      hydrate: () => set({ hydrated: true }),
+
+      exportData: () => {
+        const s = get();
+        return JSON.stringify(
+          {
+            app: "dont-think-mode",
+            version: 1,
+            exportedAt: new Date().toISOString(),
+            data: {
+              settings: s.settings,
+              schedule: s.schedule,
+              goals: s.goals,
+              tasks: s.tasks,
+              planConfirmed: s.planConfirmed,
+              aiSource: s.aiSource,
+              today: s.today,
+              history: s.history,
+              streak: s.streak,
+              sessions: s.sessions,
+            },
+          },
+          null,
+          2
+        );
+      },
+
+      importData: (raw) => {
+        try {
+          const parsed = JSON.parse(raw);
+          const d = parsed?.data ?? parsed;
+          if (!d || typeof d !== "object")
+            return { ok: false, error: "文件格式无法识别" };
+          if (!d.settings || !Array.isArray(d.goals))
+            return { ok: false, error: "缺少 settings / goals，可能不是 Life OS 备份" };
+          set({
+            settings: { ...DEFAULT_SETTINGS, ...d.settings },
+            schedule:
+              Array.isArray(d.schedule) && d.schedule.length > 0
+                ? d.schedule
+                : SEED_SCHEDULE,
+            goals: d.goals,
+            tasks: Array.isArray(d.tasks) ? d.tasks : [],
+            planConfirmed: !!d.planConfirmed,
+            aiSource: d.aiSource ?? null,
+            today: d.today ?? emptyDayLog(todayKey()),
+            history: Array.isArray(d.history) ? d.history : [],
+            streak: typeof d.streak === "number" ? d.streak : 0,
+            sessions: Array.isArray(d.sessions) ? d.sessions : [],
+          });
+          get().ensureToday();
+          return { ok: true };
+        } catch (e) {
+          return { ok: false, error: "JSON 解析失败" };
+        }
+      },
+
+      ensureToday: () => {
+        const { today, history, streak, tasks, settings } = get();
+        const key = todayKey();
+        if (today.date === key) return;
+        // roll over the day
+        const hadActivity =
+          today.pomodorosDone > 0 || today.completedBlocks.length > 0;
+        const newHistory = hadActivity ? [today, ...history].slice(0, 90) : history;
+        const continued = hadActivity && today.score >= 60;
+        // Carry unfinished tasks into the new day — finished ones are already
+        // banked in history. Reset daily progress + re-rank, and tag them so
+        // the UI can show they rolled over from yesterday.
+        const carried = tasks
+          .filter((t) => !t.done)
+          .sort((a, b) => a.rank - b.rank)
+          .map((t, i) => ({
+            ...t,
+            rank: i + 1,
+            done: false,
+            donePomodoros: 0,
+            optional: false,
+            carriedOver: true,
+          }));
+        set({
+          today: emptyDayLog(key),
+          history: newHistory,
+          streak: continued ? streak + 1 : hadActivity ? 0 : streak,
+          tasks: carried,
+          planConfirmed: false,
+          aiSource: null,
+          sessions: [],
+          pomoPhase: "focus",
+          pomoRunning: false,
+          pomoEndsAt: null,
+          pomoRemaining: pomoLen("focus", settings),
+          pomoCycle: 0,
+        });
+      },
+
+      updateSettings: (patch) =>
+        set((s) => {
+          const settings = { ...s.settings, ...patch };
+          // Keep an idle timer synced to new focus/break lengths.
+          const extra = s.pomoRunning
+            ? {}
+            : { pomoRemaining: pomoLen(s.pomoPhase, settings) };
+          return { settings, ...extra };
+        }),
+
+      updateBlock: (id, patch) =>
+        set((s) => ({
+          schedule: s.schedule.map((b) =>
+            b.id === id ? { ...b, ...patch } : b
+          ),
+        })),
+
+      addBlock: () =>
+        set((s) => {
+          const lastEnd = s.schedule.reduce((m, b) => Math.max(m, b.end), 0);
+          const start = Math.min(lastEnd, 1380);
+          const block: TimeBlock = {
+            id: `blk${Date.now()}`,
+            title: "新时间块",
+            type: "work",
+            start,
+            end: Math.min(1440, start + 60),
+            score: 5,
+            cue: "新时间块开始。",
+          };
+          return { schedule: [...s.schedule, block] };
+        }),
+
+      removeBlock: (id) =>
+        set((s) => ({ schedule: s.schedule.filter((b) => b.id !== id) })),
+
+      resetSchedule: () =>
+        set((s) => ({ schedule: defaultSchedule(s.settings) })),
+
+      addGoal: (g) =>
+        set((s) => ({
+          goals: [...s.goals, { ...g, id: `g${Date.now()}` }],
+        })),
+      updateGoal: (id, patch) =>
+        set((s) => ({
+          goals: s.goals.map((g) => (g.id === id ? { ...g, ...patch } : g)),
+        })),
+      removeGoal: (id) =>
+        set((s) => ({ goals: s.goals.filter((g) => g.id !== id) })),
+
+      setTasks: (tasks, source) =>
+        set({ tasks, aiSource: source, planConfirmed: false }),
+
+      appendTasks: (incoming, source) =>
+        set((s) => {
+          const existingTitles = new Set(
+            s.tasks.map((t) => t.title.trim().toLowerCase())
+          );
+          const maxRank = s.tasks.reduce((m, x) => Math.max(m, x.rank), 0);
+          let r = maxRank;
+          const fresh = incoming
+            .filter((t) => !existingTitles.has(t.title.trim().toLowerCase()))
+            .map((t) => ({ ...t, rank: ++r }));
+          if (fresh.length === 0)
+            return { aiSource: source, planConfirmed: false };
+          return {
+            tasks: [...s.tasks, ...fresh],
+            aiSource: source,
+            planConfirmed: false,
+          };
+        }),
+
+      addTask: (title) =>
+        set((s) => {
+          const t = title.trim();
+          if (!t) return {};
+          const maxRank = s.tasks.reduce((m, x) => Math.max(m, x.rank), 0);
+          const task: Task = {
+            id: `t${Date.now()}`,
+            title: t,
+            rank: maxRank + 1,
+            pomodoros: 2,
+            reason: "手动添加",
+            deep: false,
+            morning: false,
+            revenue: false,
+            product: false,
+            health: false,
+            optional: false,
+            done: false,
+            donePomodoros: 0,
+          };
+          return { tasks: [...s.tasks, task], planConfirmed: false };
+        }),
+
+      removeTask: (id) =>
+        set((s) => {
+          const arr = s.tasks
+            .filter((t) => t.id !== id)
+            .sort((a, b) => a.rank - b.rank);
+          arr.forEach((t, k) => (t.rank = k + 1));
+          return { tasks: arr, planConfirmed: false };
+        }),
+
+      editTaskTitle: (id, title) =>
+        set((s) => ({
+          tasks: s.tasks.map((t) =>
+            t.id === id ? { ...t, title: title.trim() || t.title } : t
+          ),
+        })),
+
+      setTaskPomodoros: (id, delta) =>
+        set((s) => ({
+          tasks: s.tasks.map((t) =>
+            t.id === id
+              ? { ...t, pomodoros: Math.max(1, Math.min(8, t.pomodoros + delta)) }
+              : t
+          ),
+        })),
+
+      reorderTask: (id, dir) =>
+        set((s) => {
+          const arr = [...s.tasks].sort((a, b) => a.rank - b.rank);
+          const i = arr.findIndex((t) => t.id === id);
+          const j = i + dir;
+          if (i < 0 || j < 0 || j >= arr.length) return {};
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+          arr.forEach((t, k) => (t.rank = k + 1));
+          return { tasks: arr };
+        }),
+
+      toggleTaskDone: (id) =>
+        set((s) => {
+          const tasks = s.tasks.map((t) =>
+            t.id === id ? { ...t, done: !t.done } : t
+          );
+          return { tasks, today: recompute(s.today, tasks) };
+        }),
+
+      toggleTaskOptional: (id) =>
+        set((s) => ({
+          tasks: s.tasks.map((t) =>
+            t.id === id ? { ...t, optional: !t.optional } : t
+          ),
+        })),
+
+      clearTasks: () => set({ tasks: [], planConfirmed: false, aiSource: null }),
+
+      confirmPlan: () => set({ planConfirmed: true }),
+
+      completeBlock: (blockId, score) =>
+        set((s) => {
+          if (s.today.completedBlocks.includes(blockId)) return {};
+          const today = {
+            ...s.today,
+            completedBlocks: [...s.today.completedBlocks, blockId],
+          };
+          if (blockId === "fitness") today.fitnessDone = true;
+          if (blockId === "sleep") today.sleptOnTime = true;
+          if (blockId === "morning-upgrade") today.beautyDone = true;
+          return { today: recompute(today, s.tasks) };
+        }),
+
+      uncompleteBlock: (blockId) =>
+        set((s) => {
+          const today = {
+            ...s.today,
+            completedBlocks: s.today.completedBlocks.filter((b) => b !== blockId),
+          };
+          if (blockId === "fitness") today.fitnessDone = false;
+          if (blockId === "sleep") today.sleptOnTime = false;
+          if (blockId === "morning-upgrade") today.beautyDone = false;
+          return { today: recompute(today, s.tasks) };
+        }),
+
+      nudgeShift: (deltaMin) =>
+        set((s) => {
+          const cur = s.today.shiftMinutes ?? 0;
+          const next = Math.max(-180, Math.min(600, cur + deltaMin));
+          return { today: { ...s.today, shiftMinutes: next } };
+        }),
+
+      resetShift: () =>
+        set((s) => ({ today: { ...s.today, shiftMinutes: 0 } })),
+
+      recordPomodoro: (taskId, taskTitle, minutes) =>
+        set((s) => {
+          const today = {
+            ...s.today,
+            pomodorosDone: s.today.pomodorosDone + 1,
+            focusMinutes: s.today.focusMinutes + minutes,
+          };
+          const tasks = taskId
+            ? s.tasks.map((t) =>
+                t.id === taskId
+                  ? {
+                      ...t,
+                      donePomodoros: t.donePomodoros + 1,
+                      done: t.donePomodoros + 1 >= t.pomodoros ? true : t.done,
+                    }
+                  : t
+              )
+            : s.tasks;
+          const session: PomodoroSession = {
+            id: `p${Date.now()}`,
+            taskId,
+            taskTitle,
+            startedAt: Date.now() - minutes * 60000,
+            completedAt: Date.now(),
+            index: today.pomodorosDone,
+          };
+          return {
+            today: recompute(today, tasks),
+            tasks,
+            sessions: [session, ...s.sessions].slice(0, 200),
+          };
+        }),
+
+      pomoStart: () =>
+        set((s) => {
+          if (s.pomoRunning) return {};
+          const rem =
+            s.pomoRemaining > 0
+              ? s.pomoRemaining
+              : pomoLen(s.pomoPhase, s.settings);
+          return {
+            pomoRunning: true,
+            pomoRemaining: rem,
+            pomoEndsAt: Date.now() + rem * 1000,
+          };
+        }),
+
+      pomoPause: () =>
+        set((s) => {
+          if (!s.pomoRunning) return {};
+          const rem = s.pomoEndsAt
+            ? Math.max(0, Math.round((s.pomoEndsAt - Date.now()) / 1000))
+            : s.pomoRemaining;
+          return { pomoRunning: false, pomoEndsAt: null, pomoRemaining: rem };
+        }),
+
+      pomoReset: () =>
+        set((s) => ({
+          pomoRunning: false,
+          pomoEndsAt: null,
+          pomoRemaining: pomoLen(s.pomoPhase, s.settings),
+        })),
+
+      pomoSkip: () => get().pomoComplete(),
+
+      // Advance to the next phase. On a finished focus block, bank the pomodoro
+      // against the current top task. Auto-continues into the next phase.
+      pomoComplete: () =>
+        set((s) => {
+          const now = Date.now();
+          if (s.pomoPhase === "focus") {
+            const top = [...s.tasks]
+              .sort((a, b) => a.rank - b.rank)
+              .find((t) => !t.done);
+            const today0 = {
+              ...s.today,
+              pomodorosDone: s.today.pomodorosDone + 1,
+              focusMinutes: s.today.focusMinutes + s.settings.focusLength,
+            };
+            const tasks = top
+              ? s.tasks.map((t) =>
+                  t.id === top.id
+                    ? {
+                        ...t,
+                        donePomodoros: t.donePomodoros + 1,
+                        done:
+                          t.donePomodoros + 1 >= t.pomodoros ? true : t.done,
+                      }
+                    : t
+                )
+              : s.tasks;
+            const session: PomodoroSession = {
+              id: `p${now}`,
+              taskId: top?.id,
+              taskTitle: top?.title ?? "Deep Work",
+              startedAt: now - s.settings.focusLength * 60000,
+              completedAt: now,
+              index: today0.pomodorosDone,
+            };
+            const newCycle = s.pomoCycle + 1;
+            const next: PomoPhase = newCycle % 4 === 0 ? "long" : "break";
+            const len = pomoLen(next, s.settings);
+            return {
+              today: recompute(today0, tasks),
+              tasks,
+              sessions: [session, ...s.sessions].slice(0, 200),
+              pomoPhase: next,
+              pomoCycle: newCycle,
+              pomoRunning: true,
+              pomoRemaining: len,
+              pomoEndsAt: now + len * 1000,
+            };
+          }
+          // break / long → back to focus
+          const len = pomoLen("focus", s.settings);
+          return {
+            pomoPhase: "focus",
+            pomoRunning: true,
+            pomoRemaining: len,
+            pomoEndsAt: now + len * 1000,
+          };
+        }),
+
+      setFitness: (v) =>
+        set((s) => ({ today: recompute({ ...s.today, fitnessDone: v }, s.tasks) })),
+      setDance: (v) =>
+        set((s) => ({ today: recompute({ ...s.today, danceDone: v }, s.tasks) })),
+      setBeauty: (v) =>
+        set((s) => ({ today: recompute({ ...s.today, beautyDone: v }, s.tasks) })),
+      setSleptOnTime: (v) =>
+        set((s) => ({ today: recompute({ ...s.today, sleptOnTime: v }, s.tasks) })),
+    }),
+    {
+      name: STORAGE_KEY,
+      version: 1,
+      partialize: (s) => ({
+        settings: s.settings,
+        schedule: s.schedule,
+        goals: s.goals,
+        tasks: s.tasks,
+        planConfirmed: s.planConfirmed,
+        aiSource: s.aiSource,
+        today: s.today,
+        history: s.history,
+        streak: s.streak,
+        sessions: s.sessions,
+        pomoPhase: s.pomoPhase,
+        pomoRunning: s.pomoRunning,
+        pomoEndsAt: s.pomoEndsAt,
+        pomoRemaining: s.pomoRemaining,
+        pomoCycle: s.pomoCycle,
+      }),
+      onRehydrateStorage: () => (state) => {
+        // Migrate users persisted before the schedule became editable.
+        if (state && (!state.schedule || state.schedule.length === 0)) {
+          state.schedule = defaultSchedule(state.settings ?? DEFAULT_SETTINGS);
+        }
+        state?.hydrate();
+        state?.ensureToday();
+      },
+    }
+  )
+);
