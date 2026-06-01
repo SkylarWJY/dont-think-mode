@@ -91,21 +91,15 @@ export default function DayTimeline({
     );
   }, [blocks, settings, inGap, min]);
 
-  // Auto-scroll the current item into the center — once, shortly after mount.
-  // (No cleanup-clear, so React StrictMode's dev double-invoke can't cancel it.)
+  // The timeline marks "now" visually (breathing dot + Now badge), but it must
+  // NOT scroll the page to it: the Today page should always open at the top on
+  // the Now ring, not jump down here. We only opt out of the browser's stale
+  // scroll restoration so a reload also lands at the top.
   const currentRef = useRef<HTMLLIElement | null>(null);
-  const didScroll = useRef(false);
   useEffect(() => {
     if (typeof history !== "undefined" && "scrollRestoration" in history) {
       history.scrollRestoration = "manual";
     }
-    setTimeout(() => {
-      if (didScroll.current) return;
-      const el = currentRef.current;
-      if (!el) return;
-      didScroll.current = true;
-      el.scrollIntoView({ block: "center" });
-    }, 400);
   }, []);
 
   return (
