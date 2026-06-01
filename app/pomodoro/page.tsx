@@ -29,7 +29,10 @@ export default function PomodoroPage() {
   useTick(1000); // re-render each second so the countdown ticks down
 
   const topTask = useMemo(
-    () => [...tasks].sort((a, b) => a.rank - b.rank).find((t) => !t.done),
+    () =>
+      [...tasks]
+        .sort((a, b) => a.rank - b.rank)
+        .find((t) => !t.done && !t.optional),
     [tasks]
   );
 

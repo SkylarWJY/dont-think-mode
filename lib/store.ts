@@ -522,7 +522,7 @@ export const useLife = create<LifeState>()(
           if (s.pomoPhase === "focus") {
             const top = [...s.tasks]
               .sort((a, b) => a.rank - b.rank)
-              .find((t) => !t.done);
+              .find((t) => !t.done && !t.optional);
             const today0 = {
               ...s.today,
               pomodorosDone: s.today.pomodorosDone + 1,

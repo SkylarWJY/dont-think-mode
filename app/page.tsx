@@ -71,7 +71,9 @@ export default function TodayPage() {
   // starting it. "现在开始" snaps its start to now and pushes the rest of the day.
   const startDelay = state.now ? Math.max(0, Math.round(min - state.now.start)) : 0;
   const ordered = [...tasks].sort((a, b) => a.rank - b.rank);
-  const topTask = ordered.find((t) => !t.done);
+  // Skip tasks deferred via "今天可以不做" (optional) — they roll to tomorrow,
+  // so the current task should advance to the next active one.
+  const topTask = ordered.find((t) => !t.done && !t.optional);
   const planDone = ordered.filter((t) => t.done).length;
   const doneToday = state.now ? today.completedBlocks.includes(state.now.id) : false;
   const minsToNext = state.next ? Math.max(0, state.next.start - min) : 0;
