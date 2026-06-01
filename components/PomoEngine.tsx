@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useLife } from "@/lib/store";
 import { resolveSchedule } from "@/lib/schedule";
 import { nowMinutes } from "@/lib/time";
-import { chime, notify } from "@/lib/notifications";
+import { chime, notify, primeAudio } from "@/lib/notifications";
 
 /**
  * Drives the shared pomodoro engine. Mounted once in the layout so the timer
@@ -20,6 +20,21 @@ import { chime, notify } from "@/lib/notifications";
  *     remaining, so it is NOT clobbered; only a fresh/full focus auto-starts.
  */
 export default function PomoEngine() {
+  // Keep the audio output unlocked so the timer-fired chime can actually
+  // play. iOS suspends the AudioContext on background / lock, so re-prime it
+  // on every interaction and whenever the tab regains focus.
+  useEffect(() => {
+    const wake = () => primeAudio();
+    window.addEventListener("pointerdown", wake);
+    window.addEventListener("keydown", wake);
+    document.addEventListener("visibilitychange", wake);
+    return () => {
+      window.removeEventListener("pointerdown", wake);
+      window.removeEventListener("keydown", wake);
+      document.removeEventListener("visibilitychange", wake);
+    };
+  }, []);
+
   useEffect(() => {
     const tick = () => {
       const st = useLife.getState();

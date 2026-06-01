@@ -28,14 +28,33 @@ export function notify(title: string, body: string) {
 
 let audioCtx: AudioContext | null = null;
 
+function getCtx(): AudioContext | null {
+  if (typeof window === "undefined") return null;
+  const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+  if (!Ctx) return null;
+  if (!audioCtx) audioCtx = new Ctx();
+  return audioCtx;
+}
+
+/**
+ * Unlock / resume the audio output. iOS and autoplay policies start the
+ * AudioContext "suspended" and only let a user gesture resume it; once
+ * resumed, later programmatic chimes (fired by the timer) can play too.
+ * Safe to call often — call it from taps and on tab focus.
+ */
+export function primeAudio() {
+  const ctx = getCtx();
+  if (ctx && ctx.state !== "running") ctx.resume().catch(() => {});
+}
+
 /** A calm two-note chime — no harsh alarm. */
 export function chime() {
-  if (typeof window === "undefined") return;
+  const ctx = getCtx();
+  if (!ctx) return;
   try {
-    const Ctx =
-      window.AudioContext || (window as any).webkitAudioContext;
-    audioCtx = audioCtx || new Ctx();
-    const ctx = audioCtx;
+    // The timer that fires this is not a user gesture, so the context may
+    // be suspended — nudge it awake before scheduling the notes.
+    if (ctx.state !== "running") ctx.resume().catch(() => {});
     const play = (freq: number, at: number, dur: number) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
