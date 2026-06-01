@@ -28,13 +28,16 @@ export default function PomodoroPage() {
 
   useTick(1000); // re-render each second so the countdown ticks down
 
-  const topTask = useMemo(
+  // Active task queue: not done, not deferred — ordered by priority.
+  // The first is "current"; the rest roll up as each one finishes.
+  const queue = useMemo(
     () =>
       [...tasks]
-        .sort((a, b) => a.rank - b.rank)
-        .find((t) => !t.done && !t.optional),
+        .filter((t) => !t.done && !t.optional)
+        .sort((a, b) => a.rank - b.rank),
     [tasks]
   );
+  const topTask = queue[0];
 
   if (!hydrated) return <div className="pt-24 text-center text-mist-faint">…</div>;
 
@@ -51,6 +54,20 @@ export default function PomodoroPage() {
   const progress = total ? 1 - remaining / total : 0;
   const accent = phase === "focus" ? "#d8b48a" : "#9db8a4";
   const prodScore = productivityScore(today, topTask ? false : true);
+
+  // Pomodoro rhythm: a long break lands after every SET focus blocks.
+  const SET = 4;
+  // During focus, the in-progress one is today's #(cycle+1); during a break
+  // it's the next one up. Either way the upcoming index is cycle+1.
+  const pomoIndex = cycle + 1;
+  const inSet = phase === "long" ? SET : cycle % SET; // completed in this set
+  const toLong = phase === "long" ? SET : SET - (cycle % SET); // until long break
+  const rhythmHint =
+    phase === "long"
+      ? "做满 4 个 · 长休息"
+      : toLong === 1 && phase === "focus"
+      ? "这个之后就是长休息"
+      : `再 ${toLong} 个进入长休息`;
 
   return (
     <div>
@@ -79,13 +96,35 @@ export default function PomodoroPage() {
       </div>
 
       <div className="flex flex-col items-center">
-        <span className="mb-3 text-xs uppercase tracking-[0.3em] text-mist-faint">
+        <span className="text-xs uppercase tracking-[0.3em] text-mist-faint">
           {phase === "focus"
-            ? `专注 · 第 ${cycle + 1} 个`
+            ? `专注 · 今天第 ${pomoIndex} 个`
             : phase === "long"
-            ? "长休息"
-            : "短休息"}
+            ? `长休息 · 下一个第 ${pomoIndex} 个`
+            : `短休息 · 下一个第 ${pomoIndex} 个`}
         </span>
+
+        {/* Set progress toward the long break — 4 dots + hint. */}
+        <div className="mb-3 mt-2 flex items-center gap-1.5">
+          {Array.from({ length: SET }).map((_, i) => {
+            const filled = i < inSet;
+            const active = phase === "focus" && i === inSet;
+            return (
+              <span
+                key={i}
+                className={`h-2 w-2 rounded-full ${
+                  active
+                    ? "bg-amber ring-2 ring-amber/30"
+                    : filled
+                    ? "bg-sage"
+                    : "bg-ink-line"
+                }`}
+              />
+            );
+          })}
+          <span className="ml-2 text-[10px] text-mist-faint">{rhythmHint}</span>
+        </div>
+
         <Ring progress={progress} color={accent} size={250}>
           <span className="numeric text-5xl font-light text-mist">
             {fmtDuration(remaining)}
@@ -94,6 +133,14 @@ export default function PomodoroPage() {
             {phase === "focus" ? `${settings.focusLength} 分钟专注` : "休息"}
           </span>
         </Ring>
+
+        {phase !== "focus" && (
+          <p className="mt-3 text-xs text-mist-dim">
+            还有{" "}
+            <span className="numeric text-mist">{fmtDuration(remaining)}</span>{" "}
+            开始今天第 {pomoIndex} 个番茄钟
+          </p>
+        )}
 
         <div className="mt-7 flex w-full gap-3">
           <button
@@ -116,6 +163,30 @@ export default function PomodoroPage() {
           </button>
         </div>
       </div>
+
+      {/* Up next — the rest of the active queue, rolls up as each finishes. */}
+      {queue.length > 1 && (
+        <div className="mt-9">
+          <p className="mb-2 text-xs uppercase tracking-widest text-mist-faint">
+            接下来 · 还剩 {queue.length - 1} 项
+          </p>
+          <div className="space-y-2">
+            {queue.slice(1, 6).map((t) => (
+              <div
+                key={t.id}
+                className="flex items-center justify-between rounded-xl border border-ink-line bg-ink-soft px-4 py-2.5"
+              >
+                <span className="truncate pr-3 text-sm text-mist-dim">
+                  {t.title}
+                </span>
+                <span className="numeric shrink-0 text-xs text-mist-faint">
+                  {t.donePomodoros}/{t.pomodoros} 🍅
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Today stats */}
       <div className="mt-9 grid grid-cols-3 gap-3">
