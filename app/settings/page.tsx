@@ -23,6 +23,8 @@ export default function SettingsPage() {
   const update = useLife((s) => s.updateSettings);
   const exportData = useLife((s) => s.exportData);
   const importData = useLife((s) => s.importData);
+  const markBackup = useLife((s) => s.markBackup);
+  const lastBackupAt = useLife((s) => s.lastBackupAt);
   const fileRef = useRef<HTMLInputElement>(null);
   const [msg, setMsg] = useState<{ tone: "ok" | "err"; text: string } | null>(
     null
@@ -39,6 +41,7 @@ export default function SettingsPage() {
       .slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
+    markBackup();
     setMsg({ tone: "ok", text: "已导出备份文件 ✓" });
   }
 
@@ -57,6 +60,17 @@ export default function SettingsPage() {
   }
 
   if (!hydrated) return <div className="pt-24 text-center text-mist-faint">…</div>;
+
+  const DAY = 86_400_000;
+  const daysSinceBackup =
+    lastBackupAt != null ? Math.floor((Date.now() - lastBackupAt) / DAY) : null;
+  const backupOverdue = daysSinceBackup == null || daysSinceBackup >= 7;
+  const backupStatus =
+    daysSinceBackup == null
+      ? "还没有备份过 — 建议先导出一份"
+      : daysSinceBackup === 0
+      ? "上次备份：今天 ✓"
+      : `上次备份：${daysSinceBackup} 天前${backupOverdue ? " — 该备份了" : ""}`;
 
   return (
     <div>
@@ -189,6 +203,18 @@ export default function SettingsPage() {
       <Group title="数据备份">
         <p className="text-[11px] leading-relaxed text-mist-faint">
           数据只存在这台设备的浏览器里。换设备、清缓存前，先导出一份；在新设备上导入即可恢复目标、历史与连续天数。
+        </p>
+        <Toggle
+          label="自动备份（过期自动导出）"
+          value={settings.autoBackup}
+          onChange={(v) => update({ autoBackup: v })}
+        />
+        <p
+          className={`text-[11px] ${
+            backupOverdue ? "text-amber" : "text-mist-faint"
+          }`}
+        >
+          {backupStatus}
         </p>
         <div className="flex gap-2">
           <button

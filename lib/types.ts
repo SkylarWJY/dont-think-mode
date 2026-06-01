@@ -87,4 +87,5 @@ export interface Settings {
   notifications: boolean;
   sound: boolean;
   openaiKey: string; // optional; enables real LLM sorting
+  autoBackup: boolean; // auto-download a JSON backup when one is overdue
 }

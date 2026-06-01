@@ -4,6 +4,7 @@ import BottomNav from "@/components/BottomNav";
 import RegisterSW from "@/components/RegisterSW";
 import BlockReminders from "@/components/BlockReminders";
 import PomoEngine from "@/components/PomoEngine";
+import AutoBackup from "@/components/AutoBackup";
 
 export const metadata: Metadata = {
   title: "Don't Think Mode",
@@ -43,6 +44,7 @@ export default function RootLayout({
         <RegisterSW />
         <BlockReminders />
         <PomoEngine />
+        <AutoBackup />
         <main className="mx-auto min-h-dvh w-full max-w-md px-5 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))]">
           {children}
         </main>

@@ -17,6 +17,7 @@ const DEFAULT_SETTINGS: Settings = {
   notifications: true,
   sound: true,
   openaiKey: "",
+  autoBackup: true,
 };
 
 // Neutral starter goals — edit these in Goals to make them yours. The AI/local
@@ -45,6 +46,7 @@ interface LifeState {
   history: DayLog[];
   streak: number;
   sessions: PomodoroSession[];
+  lastBackupAt: number | null; // epoch ms of the last export, for backup reminders
 
   // pomodoro engine — shared across pages, survives navigation + phone-lock
   pomoPhase: PomoPhase;
@@ -60,6 +62,7 @@ interface LifeState {
   // backup / restore
   exportData: () => string;
   importData: (raw: string) => { ok: boolean; error?: string };
+  markBackup: () => void;
 
   // settings & goals
   updateSettings: (patch: Partial<Settings>) => void;
@@ -161,6 +164,7 @@ export const useLife = create<LifeState>()(
       pomoEndsAt: null,
       pomoRemaining: DEFAULT_SETTINGS.focusLength * 60,
       pomoCycle: 0,
+      lastBackupAt: null,
 
       hydrate: () => set({ hydrated: true }),
 
@@ -218,6 +222,8 @@ export const useLife = create<LifeState>()(
           return { ok: false, error: "JSON 解析失败" };
         }
       },
+
+      markBackup: () => set({ lastBackupAt: Date.now() }),
 
       ensureToday: () => {
         const { today, history, streak, tasks, settings } = get();
@@ -594,11 +600,16 @@ export const useLife = create<LifeState>()(
         pomoEndsAt: s.pomoEndsAt,
         pomoRemaining: s.pomoRemaining,
         pomoCycle: s.pomoCycle,
+        lastBackupAt: s.lastBackupAt,
       }),
       onRehydrateStorage: () => (state) => {
         // Migrate users persisted before the schedule became editable.
         if (state && (!state.schedule || state.schedule.length === 0)) {
           state.schedule = defaultSchedule(state.settings ?? DEFAULT_SETTINGS);
+        }
+        // Default auto-backup on for users persisted before it existed.
+        if (state?.settings && state.settings.autoBackup === undefined) {
+          state.settings.autoBackup = true;
         }
         state?.hydrate();
         state?.ensureToday();
