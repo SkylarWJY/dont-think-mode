@@ -30,15 +30,40 @@ export default function SettingsPage() {
     null
   );
 
-  function handleExport() {
+  async function handleExport() {
     const json = exportData();
+    const filename = `life-os-backup-${new Date()
+      .toISOString()
+      .slice(0, 10)}.json`;
+
+    // Phone (iOS/Android): open the share sheet so you can pick
+    // "存到文件" → iCloud › LifeOS, where the Mac picks it up.
+    try {
+      const file = new File([json], filename, { type: "application/json" });
+      const nav = navigator as Navigator & {
+        canShare?: (d: { files: File[] }) => boolean;
+      };
+      if (nav.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: "Life OS 备份" });
+        markBackup();
+        setMsg({ tone: "ok", text: "已分享 ✓ 选「存到文件」→ iCloud › LifeOS" });
+        return;
+      }
+    } catch (e) {
+      // User dismissed the share sheet — don't also trigger a download.
+      if ((e as Error)?.name === "AbortError") {
+        setMsg({ tone: "err", text: "已取消" });
+        return;
+      }
+      // Any other share failure falls through to the download path.
+    }
+
+    // Desktop fallback: plain download.
     const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `life-os-backup-${new Date()
-      .toISOString()
-      .slice(0, 10)}.json`;
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
     markBackup();

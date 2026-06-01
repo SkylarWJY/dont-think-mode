@@ -10,9 +10,14 @@
 // browser permissions, no manual copy-paste.
 //
 // Usage:
-//   node scripts/to-obsidian.mjs                 # newest ~/Downloads backup → default vault
+//   node scripts/to-obsidian.mjs                 # newest backup → default vault
 //   node scripts/to-obsidian.mjs path/to.json    # explicit backup file
 //   LIFEOS_VAULT=/path/to/Vault node scripts/to-obsidian.mjs
+//   LIFEOS_BACKUP_DIR=/path node scripts/to-obsidian.mjs   # override search dir
+//
+// Where it looks for backups (newest wins, across all):
+//   1. iCloud Drive › LifeOS  (the phone's "Save to Files" drop folder)
+//   2. ~/Downloads            (desktop browser exports)
 //
 // Notes:
 //   • Writes ONLY into 40_journal/life-os/ — never touches your
@@ -30,7 +35,17 @@ import path from "node:path";
 const HOME = os.homedir();
 const VAULT = process.env.LIFEOS_VAULT || path.join(HOME, "Desktop", "Skylar");
 const OUT_DIR = path.join(VAULT, "40_journal", "life-os");
+const ICLOUD = path.join(
+  HOME,
+  "Library",
+  "Mobile Documents",
+  "com~apple~CloudDocs",
+  "LifeOS"
+);
 const DOWNLOADS = path.join(HOME, "Downloads");
+const SEARCH_DIRS = process.env.LIFEOS_BACKUP_DIR
+  ? [process.env.LIFEOS_BACKUP_DIR]
+  : [ICLOUD, DOWNLOADS];
 
 // ── 1. Locate the backup JSON ───────────────────────────────
 function newestBackup() {
@@ -39,19 +54,22 @@ function newestBackup() {
     if (!fs.existsSync(explicit)) die(`找不到文件：${explicit}`);
     return explicit;
   }
-  if (!fs.existsSync(DOWNLOADS)) die(`找不到 ~/Downloads：${DOWNLOADS}`);
-  const candidates = fs
-    .readdirSync(DOWNLOADS)
-    .filter((f) => /^life-os-.*\.json$/i.test(f))
-    .map((f) => {
-      const full = path.join(DOWNLOADS, f);
-      return { full, mtime: fs.statSync(full).mtimeMs };
-    })
+  const candidates = SEARCH_DIRS.filter((d) => fs.existsSync(d))
+    .flatMap((dir) =>
+      fs
+        .readdirSync(dir)
+        .filter((f) => /^life-os-.*\.json$/i.test(f))
+        .map((f) => {
+          const full = path.join(dir, f);
+          return { full, mtime: fs.statSync(full).mtimeMs };
+        })
+    )
     .sort((a, b) => b.mtime - a.mtime);
   if (candidates.length === 0)
     die(
-      `~/Downloads 里没有 life-os-*.json 备份。\n` +
-        `先到 App → Settings → 数据备份 → 「↓ 导出备份」生成一份，再跑本脚本。`
+      `没找到 life-os-*.json 备份。找过这些位置：\n` +
+        SEARCH_DIRS.map((d) => `  · ${d}`).join("\n") +
+        `\n手机上：打开 App → Settings → 数据备份 →「↓ 导出备份」→ 存到 iCloud › LifeOS。`
     );
   return candidates[0].full;
 }
