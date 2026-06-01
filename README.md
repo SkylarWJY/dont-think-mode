@@ -1,67 +1,92 @@
-# Don't Think Mode
+<div align="center">
 
-A local-first time-management PWA for ADHD founders.
+# 🧠 Don't Think Mode
 
-> Open the app. Don't think. Just execute.
+### The anti-productivity app for ADHD founders.
 
-Most productivity tools give you *more* decisions: which list, which view, what to
-do next. For an ADHD brain mid-day, that friction is where the day quietly falls
-apart. **Don't Think Mode** removes the decision. You open it and it tells you the
-one thing happening *now* — and the clock is already running.
+**Open it. Don't think. Just execute.**
 
-## Why it's different
+![PWA](https://img.shields.io/badge/PWA-installable-5A0FC8?style=flat-square)
+![Next.js](https://img.shields.io/badge/Next.js-14-black?style=flat-square)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?style=flat-square)
+![Local-first](https://img.shields.io/badge/local--first-no%20account-9db8a4?style=flat-square)
+![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
 
-- **One screen, one answer.** The home screen shows your current block and a live
-  countdown. No inbox, no backlog to triage.
-- **The timer is always running.** Step into a Deep Work block and the focus
-  pomodoro auto-starts — there is no "press start." That nagging feeling that
-  time is moving *with or without you* is the point.
-- **AI sorts your day, you don't.** Dump today's tasks in; they get ranked against
-  your goals (locally, or with your own OpenAI/Gemini key). You execute top-down.
-- **A score that turns into action.** Instead of a vague streak, it shows the
-  specific high-value levers still on the table today.
-- **Unfinished work rolls over.** Whatever you didn't close carries to tomorrow,
-  re-ranked — no guilt, no manual cleanup.
+**English** · [中文](./README.zh-CN.md)
+
+</div>
+
+---
+
+## The problem
+
+Every productivity app you've ever tried hands you *more* decisions. Which list? Which view? What's next? Reorder, re-plan, re-prioritize. For an ADHD brain at 2pm, that friction isn't a feature — it's exactly where the day quietly dies.
+
+You don't need another place to **organize** your life. You need something that just tells you what to do **right now** — while the clock is already ticking.
+
+## The answer
+
+Don't Think Mode shows you **one thing**: what's happening now, and how much time is left.
+
+That's the entire home screen. No inbox. No backlog. No "where do I even start."
+
+And the moment you step into a focus block — **the timer is already running.** There is no start button. That feeling that time is moving *with or without you*? That's not a bug. That's the whole product.
+
+## Why it works for an ADHD brain
+
+- ⏱️ **The timer never stops.** Enter a Deep Work block and a focus session auto-starts. No decision, no ramp-up, no "I'll start in 5 minutes." Momentum is the default state.
+- 🎯 **One screen, one answer.** The home screen answers a single question — *what now?* — in one glance. Everything else is one tap away, and out of sight until you need it.
+- 🤖 **AI sorts your day, you don't.** Dump today's tasks in raw. They get ranked against your goals — locally, or with your own OpenAI / Gemini key. You execute top-down and never agonize over priority again.
+- 📈 **A score that becomes action.** Instead of a guilt-trip streak, it surfaces the *specific* high-value moves still left on the table today, so "do better" turns into "do this."
+- ↩️ **Unfinished work rolls over.** Whatever you didn't close carries to tomorrow, automatically re-ranked. No cleanup, no shame spiral.
+- 🔒 **100% local. No account, no cloud, no tracking.** Everything lives in your browser. Export a JSON backup to hop devices. Your day is nobody's data.
 
 ## Design principles
 
-1. **Remove choices, not features.** Every screen should answer "what now?" in one
-   glance.
-2. **Local-first.** All data lives in your browser's `localStorage`. No account,
-   no server, no tracking. Export/import a JSON backup to move devices.
-3. **Make time visible.** Countdowns over to-do lists; momentum over planning.
+1. **Remove choices, not features.** Every screen must answer *"what now?"* in one glance.
+2. **Make time visible.** Countdowns over checklists. Momentum over planning.
+3. **Local-first, always.** No login wall, no server round-trip, no telemetry.
 
-## Stack
-
-- Next.js 14 (App Router) · TypeScript · Tailwind
-- Zustand (persisted, local-first store)
-- Installable PWA (offline-capable, add to iOS/Android home screen)
-
-## Run it
+## Quick start
 
 ```bash
 npm install
-npm run dev      # http://localhost:4318
+npm run dev      # → http://localhost:4318
 ```
 
-Then **Add to Home Screen** on your phone to run it as a standalone app.
+Then open it on your phone and **Add to Home Screen** — it installs as a standalone, offline-capable app.
 
 ### Optional: real LLM task sorting
 
-The local heuristic ranker works with zero setup. To use an LLM instead, paste an
-OpenAI (`sk-…`) or Google Gemini (`AIza…`) key in **Settings → AI 排序**. The key is
-stored only in your browser and used only to rank your task list.
+The built-in heuristic ranker works with zero setup. Want an LLM instead? Paste an
+OpenAI (`sk-…`) or Google Gemini (`AIza…`) key into **Settings → AI 排序**. The key
+is stored only in your browser and used only to rank your task list — it never
+leaves your device.
 
 ## Make it yours
 
 The seed goals and daily rhythm are neutral defaults. Edit them in-app:
 
-- **Goals** — your real priorities (the task ranker weights against these).
-- **Schedule** — your blocks, work windows, wake/sleep times.
-- **Settings** — pomodoro lengths, your display name, notifications.
+- **Goals** — your real priorities (the ranker weights tasks against these).
+- **Schedule** — your blocks, deep-work windows, wake / sleep times.
+- **Settings** — pomodoro lengths, display name, notifications.
 
-Nothing you enter ever leaves your device.
+Nothing you type ever leaves your device.
+
+## Stack
+
+- **Next.js 14** (App Router) · **TypeScript** · **Tailwind CSS**
+- **Zustand** — persisted, local-first state
+- **Installable PWA** — offline-capable, home-screen ready
 
 ## License
 
-MIT
+[MIT](./LICENSE) — do whatever you want with it.
+
+<div align="center">
+
+---
+
+*Built for the brains that have a thousand tabs open — and just need the next one.*
+
+</div>
