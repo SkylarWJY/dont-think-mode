@@ -10,7 +10,7 @@ import { fmtClock } from "@/lib/time";
 import { parseTasks, sortTasks } from "@/lib/ai";
 
 const EXAMPLE =
-  "我今天想做三件事：修改 pitch deck，发 20 个 BD 消息，整理网站首页。";
+  "今天想做：给潜在用户发消息，写落地页第一版，录一条产品 demo。";
 
 export default function PlanPage() {
   const hydrated = useHydrated();

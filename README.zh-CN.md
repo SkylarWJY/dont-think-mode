@@ -14,6 +14,17 @@
 
 [English](./README.md) · **中文**
 
+<br/>
+
+<table>
+<tr>
+<td align="center"><img src="docs/screenshots/today.png" width="200" alt="Today — 此刻的倒计时" /><br/><sub><b>此刻</b> · 现在做什么，表针已经在走</sub></td>
+<td align="center"><img src="docs/screenshots/focus.png" width="200" alt="Focus — 永不停的计时器" /><br/><sub><b>专注</b> · 没有「开始」按钮</sub></td>
+<td align="center"><img src="docs/screenshots/plan.png" width="200" alt="Plan — AI 排序任务" /><br/><sub><b>计划</b> · 丢进任务，AI 排序</sub></td>
+<td align="center"><img src="docs/screenshots/review.png" width="200" alt="Review — 分数与连续达标" /><br/><sub><b>复盘</b> · 分数变成连续天数</sub></td>
+</tr>
+</table>
+
 </div>
 
 ---
