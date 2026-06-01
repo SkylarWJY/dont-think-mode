@@ -6,7 +6,8 @@
     "dev": "next dev -p 4318",
     "build": "next build",
     "start": "next start -p 4318",
-    "lint": "next lint"
+    "lint": "next lint",
+    "obsidian": "node scripts/to-obsidian.mjs"
   },
   "dependencies": {
     "framer-motion": "^11.3.0",
