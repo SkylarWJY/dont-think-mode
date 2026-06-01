@@ -18,10 +18,10 @@
 
 <table>
 <tr>
-<td align="center"><img src="docs/screenshots/today.png" width="200" alt="Today — the live NOW ring" /><br/><sub><b>Today</b> · what's now, already ticking</sub></td>
-<td align="center"><img src="docs/screenshots/focus.png" width="200" alt="Focus — always-running timer" /><br/><sub><b>Focus</b> · no start button, ever</sub></td>
-<td align="center"><img src="docs/screenshots/plan.png" width="200" alt="Plan — AI-sorted tasks" /><br/><sub><b>Plan</b> · dump tasks, AI ranks them</sub></td>
-<td align="center"><img src="docs/screenshots/review.png" width="200" alt="Review — score and streak" /><br/><sub><b>Review</b> · score becomes a streak</sub></td>
+<td align="center" valign="top" width="25%"><img src="docs/screenshots/en/today.png" width="200" alt="Today — the live NOW ring" /><br/><sub><b>Today</b> · what's now</sub></td>
+<td align="center" valign="top" width="25%"><img src="docs/screenshots/en/focus.png" width="200" alt="Focus — always-running timer" /><br/><sub><b>Focus</b> · always running</sub></td>
+<td align="center" valign="top" width="25%"><img src="docs/screenshots/en/plan.png" width="200" alt="Plan — AI-sorted tasks" /><br/><sub><b>Plan</b> · AI-sorted tasks</sub></td>
+<td align="center" valign="top" width="25%"><img src="docs/screenshots/en/review.png" width="200" alt="Review — score and streak" /><br/><sub><b>Review</b> · score → streak</sub></td>
 </tr>
 </table>
 
