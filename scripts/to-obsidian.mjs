@@ -4,10 +4,10 @@
 // Turn a Life OS backup JSON into one daily-summary note per day,
 // filed under <vault>/40_journal/life-os/YYYY-MM-DD.md.
 //
-// The app is local-first (browser localStorage). Its auto-backup
-// downloads a JSON into ~/Downloads. This script reads the newest
-// such file and renders Markdown into the Obsidian vault — no
-// browser permissions, no manual copy-paste.
+// The app is local-first (browser localStorage). You export a JSON
+// from the app (Settings → 数据备份 → 导出备份); on a phone that saves
+// to Files / iCloud. This script reads the newest such file and
+// renders Markdown into the Obsidian vault — no browser permissions.
 //
 // Usage:
 //   node scripts/to-obsidian.mjs                 # newest backup → default vault
@@ -35,17 +35,19 @@ import path from "node:path";
 const HOME = os.homedir();
 const VAULT = process.env.LIFEOS_VAULT || path.join(HOME, "Desktop", "Skylar");
 const OUT_DIR = path.join(VAULT, "40_journal", "life-os");
-const ICLOUD = path.join(
+const ICLOUD_ROOT = path.join(
   HOME,
   "Library",
   "Mobile Documents",
-  "com~apple~CloudDocs",
-  "LifeOS"
+  "com~apple~CloudDocs"
 );
+const ICLOUD = path.join(ICLOUD_ROOT, "LifeOS");
 const DOWNLOADS = path.join(HOME, "Downloads");
+// Scan the iCloud Drive root too — iOS "Save to Files" often drops the export
+// there rather than inside the LifeOS subfolder, and we don't want to miss it.
 const SEARCH_DIRS = process.env.LIFEOS_BACKUP_DIR
   ? [process.env.LIFEOS_BACKUP_DIR]
-  : [ICLOUD, DOWNLOADS];
+  : [ICLOUD, ICLOUD_ROOT, DOWNLOADS];
 
 // ── 1. Locate the backup JSON ───────────────────────────────
 function newestBackup() {
