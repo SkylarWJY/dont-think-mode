@@ -28,6 +28,7 @@ export default function TodayPage() {
   const schedule = useLife((s) => s.schedule);
   const today = useLife((s) => s.today);
   const tasks = useLife((s) => s.tasks);
+  const activeTaskId = useLife((s) => s.activeTaskId);
   const streak = useLife((s) => s.streak);
   const completeBlock = useLife((s) => s.completeBlock);
   const uncompleteBlock = useLife((s) => s.uncompleteBlock);
@@ -74,8 +75,12 @@ export default function TodayPage() {
   const startDelay = state.now ? Math.max(0, Math.round(min - state.now.start)) : 0;
   const ordered = [...tasks].sort((a, b) => a.rank - b.rank);
   // Skip tasks deferred via "今天可以不做" (optional) — they roll to tomorrow,
-  // so the current task should advance to the next active one.
-  const topTask = ordered.find((t) => !t.done && !t.optional);
+  // so the current task should advance to the next active one. Honor a manual
+  // pick from the Focus page so both screens agree on what's "current".
+  const activeTask = activeTaskId
+    ? ordered.find((t) => t.id === activeTaskId && !t.done && !t.optional)
+    : undefined;
+  const topTask = activeTask ?? ordered.find((t) => !t.done && !t.optional);
   const planDone = ordered.filter((t) => t.done).length;
   const doneToday = state.now ? today.completedBlocks.includes(state.now.id) : false;
   // "Moved on early" — advanced past this block without finishing it. Shows the

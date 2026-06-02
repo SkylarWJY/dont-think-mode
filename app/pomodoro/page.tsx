@@ -14,6 +14,8 @@ export default function PomodoroPage() {
   const tasks = useLife((s) => s.tasks);
   const today = useLife((s) => s.today);
   const toggleDone = useLife((s) => s.toggleTaskDone);
+  const activeTaskId = useLife((s) => s.activeTaskId);
+  const setActiveTask = useLife((s) => s.setActiveTask);
 
   // Shared, timestamp-based engine in the store — survives navigation + lock.
   const phase = useLife((s) => s.pomoPhase);
@@ -29,7 +31,6 @@ export default function PomodoroPage() {
   useTick(1000); // re-render each second so the countdown ticks down
 
   // Active task queue: not done, not deferred — ordered by priority.
-  // The first is "current"; the rest roll up as each one finishes.
   const queue = useMemo(
     () =>
       [...tasks]
@@ -37,7 +38,15 @@ export default function PomodoroPage() {
         .sort((a, b) => a.rank - b.rank),
     [tasks]
   );
-  const topTask = queue[0];
+  // The "current" task is whichever you tapped (if still active), else the top
+  // of the queue. Switching tasks does NOT touch the running timer.
+  const activeTask = activeTaskId
+    ? queue.find((t) => t.id === activeTaskId)
+    : undefined;
+  const topTask = activeTask ?? queue[0];
+  // Everything else you could switch to — tap to focus it.
+  const upNext = queue.filter((t) => t.id !== topTask?.id);
+  const isManual = !!activeTask && activeTask.id !== queue[0]?.id;
 
   if (!hydrated) return <div className="pt-24 text-center text-mist-faint">…</div>;
 
@@ -74,8 +83,8 @@ export default function PomodoroPage() {
       <Header title="Deep Work" sub="一次只做眼前这一件事。" />
 
       <div className="mb-5 rounded-2xl border border-ink-line bg-ink-card px-4 py-3 text-center">
-        <p className="text-[10px] uppercase tracking-widest text-mist-faint">
-          当前任务
+        <p className="text-[10px] uppercase tracking-widest text-amber">
+          正在专注{isManual ? " · 已手动选择" : ""}
         </p>
         <p className="mt-0.5 font-medium text-mist">
           {topTask ? topTask.title : "自由专注"}
@@ -85,12 +94,22 @@ export default function PomodoroPage() {
             <p className="text-xs text-mist-faint">
               {topTask.donePomodoros}/{topTask.pomodoros} 番茄钟
             </p>
-            <button
-              onClick={() => toggleDone(topTask.id)}
-              className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-sage/40 bg-sage/10 px-3 py-1.5 text-xs font-medium text-sage"
-            >
-              ✓ 标记完成
-            </button>
+            <div className="mt-2 flex items-center justify-center gap-2">
+              <button
+                onClick={() => toggleDone(topTask.id)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-sage/40 bg-sage/10 px-3 py-1.5 text-xs font-medium text-sage"
+              >
+                ✓ 标记完成
+              </button>
+              {isManual && (
+                <button
+                  onClick={() => setActiveTask(null)}
+                  className="inline-flex items-center rounded-full border border-ink-line px-3 py-1.5 text-xs text-mist-faint"
+                >
+                  回到默认顺序
+                </button>
+              )}
+            </div>
           </>
         )}
       </div>
@@ -164,17 +183,18 @@ export default function PomodoroPage() {
         </div>
       </div>
 
-      {/* Up next — the rest of the active queue, rolls up as each finishes. */}
-      {queue.length > 1 && (
+      {/* Switch tasks — tap any one to focus it. The timer keeps running. */}
+      {upNext.length > 0 && (
         <div className="mt-9">
           <p className="mb-2 text-xs uppercase tracking-widest text-mist-faint">
-            接下来 · 还剩 {queue.length - 1} 项
+            切换任务 · 点一下专注它（计时不重置）
           </p>
           <div className="space-y-2">
-            {queue.slice(1, 6).map((t) => (
-              <div
+            {upNext.slice(0, 6).map((t) => (
+              <button
                 key={t.id}
-                className="flex items-center justify-between rounded-xl border border-ink-line bg-ink-soft px-4 py-2.5"
+                onClick={() => setActiveTask(t.id)}
+                className="flex w-full items-center justify-between rounded-xl border border-ink-line bg-ink-soft px-4 py-2.5 text-left transition-colors active:bg-amber/10"
               >
                 <span className="truncate pr-3 text-sm text-mist-dim">
                   {t.title}
@@ -182,7 +202,7 @@ export default function PomodoroPage() {
                 <span className="numeric shrink-0 text-xs text-mist-faint">
                   {t.donePomodoros}/{t.pomodoros} 🍅
                 </span>
-              </div>
+              </button>
             ))}
           </div>
         </div>

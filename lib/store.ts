@@ -40,6 +40,7 @@ interface LifeState {
   schedule: TimeBlock[];
   goals: Goal[];
   tasks: Task[];
+  activeTaskId: string | null; // task the pomodoro currently credits; null = auto-pick top
   planConfirmed: boolean;
   aiSource: "ai" | "local" | null;
   today: DayLog;
@@ -87,6 +88,7 @@ interface LifeState {
   reorderTask: (id: string, dir: -1 | 1) => void;
   toggleTaskDone: (id: string) => void;
   toggleTaskOptional: (id: string) => void;
+  setActiveTask: (id: string | null) => void;
   clearTasks: () => void;
   confirmPlan: () => void;
 
@@ -154,6 +156,7 @@ export const useLife = create<LifeState>()(
       schedule: SEED_SCHEDULE,
       goals: SEED_GOALS,
       tasks: [],
+      activeTaskId: null,
       planConfirmed: false,
       aiSource: null,
       today: emptyDayLog(todayKey()),
@@ -255,6 +258,7 @@ export const useLife = create<LifeState>()(
           history: newHistory,
           streak: continued ? streak + 1 : hadActivity ? 0 : streak,
           tasks: carried,
+          activeTaskId: null,
           planConfirmed: false,
           aiSource: null,
           sessions: [],
@@ -412,7 +416,12 @@ export const useLife = create<LifeState>()(
           ),
         })),
 
-      clearTasks: () => set({ tasks: [], planConfirmed: false, aiSource: null }),
+      // Pick which task the pomodoro credits. Changing this does NOT touch the
+      // running timer — it keeps ticking; you're just re-pointing the credit.
+      setActiveTask: (id) => set({ activeTaskId: id }),
+
+      clearTasks: () =>
+        set({ tasks: [], activeTaskId: null, planConfirmed: false, aiSource: null }),
 
       confirmPlan: () => set({ planConfirmed: true }),
 
@@ -548,9 +557,16 @@ export const useLife = create<LifeState>()(
         set((s) => {
           const now = Date.now();
           if (s.pomoPhase === "focus") {
-            const top = [...s.tasks]
-              .sort((a, b) => a.rank - b.rank)
-              .find((t) => !t.done && !t.optional);
+            // Credit the task the user is focused on (if they picked one and it's
+            // still active); otherwise fall back to the top task by rank.
+            const active = s.tasks.find(
+              (t) => t.id === s.activeTaskId && !t.done && !t.optional
+            );
+            const top =
+              active ??
+              [...s.tasks]
+                .sort((a, b) => a.rank - b.rank)
+                .find((t) => !t.done && !t.optional);
             const today0 = {
               ...s.today,
               pomodorosDone: s.today.pomodorosDone + 1,
@@ -579,9 +595,14 @@ export const useLife = create<LifeState>()(
             const newCycle = s.pomoCycle + 1;
             const next: PomoPhase = newCycle % 4 === 0 ? "long" : "break";
             const len = pomoLen(next, s.settings);
+            // If the credited task just finished, drop the manual pick so focus
+            // rolls to the next task automatically.
+            const creditedDone =
+              !!top && top.donePomodoros + 1 >= top.pomodoros;
             return {
               today: recompute(today0, tasks),
               tasks,
+              activeTaskId: creditedDone ? null : s.activeTaskId,
               sessions: [session, ...s.sessions].slice(0, 200),
               pomoPhase: next,
               pomoCycle: newCycle,
@@ -617,6 +638,7 @@ export const useLife = create<LifeState>()(
         schedule: s.schedule,
         goals: s.goals,
         tasks: s.tasks,
+        activeTaskId: s.activeTaskId,
         planConfirmed: s.planConfirmed,
         aiSource: s.aiSource,
         today: s.today,
