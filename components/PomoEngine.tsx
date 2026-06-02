@@ -45,7 +45,8 @@ export default function PomoEngine() {
         const doneBefore = st.today.pomodorosDone;
         st.pomoComplete();
         const after = useLife.getState();
-        if (after.settings.sound) chime();
+        // Distinct cue per direction: focus→rest winds down, rest→focus lifts.
+        if (after.settings.sound) chime(wasFocus ? "focusDone" : "restDone");
         if (after.settings.notifications) {
           if (wasFocus) {
             notify("番茄钟完成", `休息一下 · 已完成 ${doneBefore + 1} 个`);

@@ -194,9 +194,27 @@ export default function SettingsPage() {
           value={settings.sound}
           onChange={(v) => {
             update({ sound: v });
-            if (v) chime();
+            if (v) chime("focusDone");
           }}
         />
+        {/* Two distinct cues — tap to learn which is which (and unlock audio). */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => chime("focusDone")}
+            className="flex-1 rounded-xl border border-ink-line bg-ink-soft px-3 py-2.5 text-xs text-mist-dim active:bg-sage/10"
+          >
+            🔉 试听 · 该休息了
+          </button>
+          <button
+            onClick={() => chime("restDone")}
+            className="flex-1 rounded-xl border border-ink-line bg-ink-soft px-3 py-2.5 text-xs text-mist-dim active:bg-amber/10"
+          >
+            🔊 试听 · 回到专注
+          </button>
+        </div>
+        <p className="text-[11px] leading-relaxed text-mist-faint">
+          专注结束（该休息）是一段往下走的柔和音；休息结束（回到专注）是一段往上扬的清亮音。
+        </p>
       </Group>
 
       <Group title="AI 排序">
