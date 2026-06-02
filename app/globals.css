@@ -4,12 +4,43 @@
 
 :root {
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Dark theme (default) — RGB channels for Tailwind's <alpha-value>. */
+  --ink: 10 10 11;
+  --ink-soft: 20 20 23;
+  --ink-card: 23 23 27;
+  --ink-line: 38 38 44;
+  --mist: 231 231 234;
+  --mist-dim: 161 161 170;
+  --mist-faint: 107 107 115;
+  --sage: 157 184 164;
+  --sage-deep: 95 130 104;
+  --amber: 216 180 138;
+  --rose: 201 138 138;
+  color-scheme: dark;
+}
+
+/* Light theme — warm off-white surfaces, dark ink text, deeper accents so
+   they keep contrast on white. Toggled by adding `.light` on <html>. */
+.light {
+  --ink: 247 247 245;
+  --ink-soft: 240 240 237;
+  --ink-card: 255 255 255;
+  --ink-line: 224 223 218;
+  --mist: 28 28 32;
+  --mist-dim: 88 88 96;
+  --mist-faint: 138 138 146;
+  --sage: 91 124 100;
+  --sage-deep: 70 100 80;
+  --amber: 168 119 51;
+  --rose: 176 92 92;
+  color-scheme: light;
 }
 
 html,
 body {
-  background: #0a0a0b;
-  color: #e7e7ea;
+  background: rgb(var(--ink));
+  color: rgb(var(--mist));
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -28,7 +59,7 @@ body {
   height: 8px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #26262c;
+  background: rgb(var(--ink-line));
   border-radius: 999px;
 }
 ::-webkit-scrollbar-track {

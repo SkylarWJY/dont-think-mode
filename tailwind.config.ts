@@ -12,26 +12,28 @@ const config: Config = {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
       },
       colors: {
+        // Channel-based CSS vars so the whole palette can flip light/dark.
+        // Values live in globals.css under :root (dark) and .light.
         ink: {
-          DEFAULT: "#0a0a0b",
-          soft: "#141417",
-          card: "#17171b",
-          line: "#26262c",
+          DEFAULT: "rgb(var(--ink) / <alpha-value>)",
+          soft: "rgb(var(--ink-soft) / <alpha-value>)",
+          card: "rgb(var(--ink-card) / <alpha-value>)",
+          line: "rgb(var(--ink-line) / <alpha-value>)",
         },
         mist: {
-          DEFAULT: "#e7e7ea",
-          dim: "#a1a1aa",
-          faint: "#6b6b73",
+          DEFAULT: "rgb(var(--mist) / <alpha-value>)",
+          dim: "rgb(var(--mist-dim) / <alpha-value>)",
+          faint: "rgb(var(--mist-faint) / <alpha-value>)",
         },
         sage: {
-          DEFAULT: "#9db8a4",
-          deep: "#5f8268",
+          DEFAULT: "rgb(var(--sage) / <alpha-value>)",
+          deep: "rgb(var(--sage-deep) / <alpha-value>)",
         },
         amber: {
-          DEFAULT: "#d8b48a",
+          DEFAULT: "rgb(var(--amber) / <alpha-value>)",
         },
         rose: {
-          DEFAULT: "#c98a8a",
+          DEFAULT: "rgb(var(--rose) / <alpha-value>)",
         },
       },
       keyframes: {

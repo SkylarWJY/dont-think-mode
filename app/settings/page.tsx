@@ -114,13 +114,21 @@ export default function SettingsPage() {
         </div>
       </Group>
 
+      <Group title="外观">
+        <Toggle
+          label="浅色模式"
+          value={settings.theme === "light"}
+          onChange={(v) => update({ theme: v ? "light" : "dark" })}
+        />
+      </Group>
+
       <Group title="作息">
         <Field label="起床时间">
           <input
             type="time"
             value={toHHMM(settings.wakeMinutes)}
             onChange={(e) => update({ wakeMinutes: toMin(e.target.value) })}
-            className="rounded-lg border border-ink-line bg-ink-soft px-3 py-1.5 text-mist [color-scheme:dark]"
+            className="rounded-lg border border-ink-line bg-ink-soft px-3 py-1.5 text-mist"
           />
         </Field>
         <Field label="睡觉时间">
@@ -128,7 +136,7 @@ export default function SettingsPage() {
             type="time"
             value={toHHMM(settings.sleepMinutes)}
             onChange={(e) => update({ sleepMinutes: toMin(e.target.value) })}
-            className="rounded-lg border border-ink-line bg-ink-soft px-3 py-1.5 text-mist [color-scheme:dark]"
+            className="rounded-lg border border-ink-line bg-ink-soft px-3 py-1.5 text-mist"
           />
         </Field>
       </Group>

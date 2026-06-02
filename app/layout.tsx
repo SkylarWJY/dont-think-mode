@@ -5,6 +5,10 @@ import RegisterSW from "@/components/RegisterSW";
 import BlockReminders from "@/components/BlockReminders";
 import PomoEngine from "@/components/PomoEngine";
 import AutoBackup from "@/components/AutoBackup";
+import ThemeApplier from "@/components/ThemeApplier";
+
+// Apply the saved theme before first paint so there's no dark→light flash.
+const THEME_INIT = `(function(){try{var s=JSON.parse(localStorage.getItem('dont-think-mode'));if(s&&s.state&&s.state.settings&&s.state.settings.theme==='light'){document.documentElement.classList.add('light');}}catch(e){}})();`;
 
 export const metadata: Metadata = {
   title: "Don't Think Mode",
@@ -39,12 +43,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="zh">
+    <html lang="zh" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
+      </head>
       <body className="min-h-dvh font-sans antialiased">
         <RegisterSW />
         <BlockReminders />
         <PomoEngine />
         <AutoBackup />
+        <ThemeApplier />
         <main className="mx-auto min-h-dvh w-full max-w-md px-5 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))]">
           {children}
         </main>
