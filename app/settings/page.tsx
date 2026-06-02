@@ -253,13 +253,8 @@ export default function SettingsPage() {
 
       <Group title="数据备份">
         <p className="text-[11px] leading-relaxed text-mist-faint">
-          数据只存在这台设备的浏览器里。换设备、清缓存前，先导出一份；在新设备上导入即可恢复目标、历史与连续天数。
+          数据只存在这台设备的浏览器里。换设备、清缓存前，先手动导出一份；在新设备上导入即可恢复目标、历史与连续天数。手机上「导出备份」可存到「文件 / iCloud」，放进 iCloud 的 LifeOS 文件夹后，Mac 会自动把当天小结同步成 Obsidian 笔记。
         </p>
-        <Toggle
-          label="自动备份（过期自动导出）"
-          value={settings.autoBackup}
-          onChange={(v) => update({ autoBackup: v })}
-        />
         <p
           className={`text-[11px] ${
             backupOverdue ? "text-amber" : "text-mist-faint"
