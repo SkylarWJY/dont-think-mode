@@ -1,13 +1,16 @@
-import { DayLog } from "./types";
+import { DayLog, Task } from "./types";
 
+// Scoring philosophy (set by the user):
+//   1. Finishing the daily routine and 2. the number of tasks done are the
+//   backbone of the score. 3. The day's #1 task (the priority-goal task) is
+//   worth a big bonus.
 export const POINTS = {
-  wakeOnTime: 10,
-  morningRoutine: 10,
-  pomodoro: 5,
-  topTask: 20,
-  fitness: 20,
-  dance: 20,
-  sleepOnTime: 20,
+  morningRoutine: 15,
+  fitness: 15,
+  sleepOnTime: 15,
+  dance: 10,
+  taskDone: 8, // each completed task
+  topTask: 25, // the day's #1 — the priority-goal task
 };
 
 export function emptyDayLog(date: string): DayLog {
@@ -15,6 +18,7 @@ export function emptyDayLog(date: string): DayLog {
     date,
     completedBlocks: [],
     skippedBlocks: [],
+    completedTasks: [],
     pomodorosDone: 0,
     focusMinutes: 0,
     fitnessDone: false,
@@ -26,18 +30,28 @@ export function emptyDayLog(date: string): DayLog {
   };
 }
 
-/** Recompute the live score from the day's activity. */
-export function computeScore(log: DayLog, topTaskDone: boolean): number {
+/** Points from the daily routine alone (the binary rituals). */
+function routinePoints(log: DayLog): number {
   let s = 0;
-  if (log.completedBlocks.includes("morning-upgrade")) {
-    s += POINTS.wakeOnTime + POINTS.morningRoutine;
-  }
-  s += log.pomodorosDone * POINTS.pomodoro;
-  if (topTaskDone) s += POINTS.topTask;
+  if (log.completedBlocks.includes("morning-upgrade")) s += POINTS.morningRoutine;
   if (log.fitnessDone) s += POINTS.fitness;
-  if (log.danceDone) s += POINTS.dance;
   if (log.sleptOnTime) s += POINTS.sleepOnTime;
+  if (log.danceDone) s += POINTS.dance;
   return s;
+}
+
+/**
+ * Recompute the live score from the day's activity:
+ *   routine rituals + (tasks done × 8) + (the #1 task → +25).
+ */
+export function computeScore(log: DayLog, tasks: Task[]): number {
+  const doneCount = tasks.filter((t) => t.done).length;
+  const topTaskDone = tasks.find((t) => t.rank === 1)?.done ?? false;
+  return (
+    routinePoints(log) +
+    doneCount * POINTS.taskDone +
+    (topTaskDone ? POINTS.topTask : 0)
+  );
 }
 
 export interface ScoreLever {
@@ -51,15 +65,20 @@ export interface ScoreLever {
 export function scoreLevers(log: DayLog, topTaskDone: boolean): ScoreLever[] {
   return [
     {
+      key: "topTask",
+      label: "完成第一要务 · 优先目标",
+      points: POINTS.topTask,
+      done: topTaskDone,
+    },
+    {
       key: "morning",
       label: "早起 Routine",
-      points: POINTS.wakeOnTime + POINTS.morningRoutine,
+      points: POINTS.morningRoutine,
       done: log.completedBlocks.includes("morning-upgrade"),
     },
-    { key: "topTask", label: "完成第一要务", points: POINTS.topTask, done: topTaskDone },
     { key: "fitness", label: "健身", points: POINTS.fitness, done: log.fitnessDone },
-    { key: "dance", label: "跳舞", points: POINTS.dance, done: log.danceDone },
     { key: "sleep", label: "准时睡", points: POINTS.sleepOnTime, done: log.sleptOnTime },
+    { key: "dance", label: "跳舞", points: POINTS.dance, done: log.danceDone },
   ];
 }
 

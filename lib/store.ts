@@ -18,6 +18,7 @@ const DEFAULT_SETTINGS: Settings = {
   sound: true,
   openaiKey: "",
   autoBackup: true,
+  theme: "dark",
 };
 
 // Neutral starter goals — edit these in Goals to make them yours. The AI/local
@@ -115,8 +116,7 @@ interface LifeState {
 }
 
 function recompute(today: DayLog, tasks: Task[]): DayLog {
-  const topTaskDone = tasks.find((t) => t.rank === 1)?.done ?? false;
-  return { ...today, score: computeScore(today, topTaskDone) };
+  return { ...today, score: computeScore(today, tasks) };
 }
 
 type PomoPhase = "focus" | "break" | "long";
@@ -403,10 +403,28 @@ export const useLife = create<LifeState>()(
 
       toggleTaskDone: (id) =>
         set((s) => {
+          const target = s.tasks.find((t) => t.id === id);
+          if (!target) return {};
+          const nowDone = !target.done;
           const tasks = s.tasks.map((t) =>
-            t.id === id ? { ...t, done: !t.done } : t
+            t.id === id ? { ...t, done: nowDone } : t
           );
-          return { tasks, today: recompute(s.today, tasks) };
+          // Keep a per-day log of finished task titles so Review can show, by
+          // date, exactly what got done.
+          const prev = s.today.completedTasks ?? [];
+          const completedTasks = nowDone
+            ? prev.includes(target.title)
+              ? prev
+              : [...prev, target.title]
+            : prev.filter((t) => t !== target.title);
+          // Finishing the focused task drops the manual pick so focus rolls on.
+          const activeTaskId =
+            nowDone && s.activeTaskId === id ? null : s.activeTaskId;
+          return {
+            tasks,
+            activeTaskId,
+            today: recompute({ ...s.today, completedTasks }, tasks),
+          };
         }),
 
       toggleTaskOptional: (id) =>
@@ -496,11 +514,7 @@ export const useLife = create<LifeState>()(
           const tasks = taskId
             ? s.tasks.map((t) =>
                 t.id === taskId
-                  ? {
-                      ...t,
-                      donePomodoros: t.donePomodoros + 1,
-                      done: t.donePomodoros + 1 >= t.pomodoros ? true : t.done,
-                    }
+                  ? { ...t, donePomodoros: t.donePomodoros + 1 }
                   : t
               )
             : s.tasks;
@@ -572,15 +586,13 @@ export const useLife = create<LifeState>()(
               pomodorosDone: s.today.pomodorosDone + 1,
               focusMinutes: s.today.focusMinutes + s.settings.focusLength,
             };
+            // Bank the pomodoro against the task — but NEVER auto-mark it done.
+            // Reaching the estimate just means it's full (e.g. 4/3 🍅); only the
+            // user marks a task complete.
             const tasks = top
               ? s.tasks.map((t) =>
                   t.id === top.id
-                    ? {
-                        ...t,
-                        donePomodoros: t.donePomodoros + 1,
-                        done:
-                          t.donePomodoros + 1 >= t.pomodoros ? true : t.done,
-                      }
+                    ? { ...t, donePomodoros: t.donePomodoros + 1 }
                     : t
                 )
               : s.tasks;
@@ -595,14 +607,10 @@ export const useLife = create<LifeState>()(
             const newCycle = s.pomoCycle + 1;
             const next: PomoPhase = newCycle % 4 === 0 ? "long" : "break";
             const len = pomoLen(next, s.settings);
-            // If the credited task just finished, drop the manual pick so focus
-            // rolls to the next task automatically.
-            const creditedDone =
-              !!top && top.donePomodoros + 1 >= top.pomodoros;
             return {
               today: recompute(today0, tasks),
               tasks,
-              activeTaskId: creditedDone ? null : s.activeTaskId,
+              activeTaskId: s.activeTaskId,
               sessions: [session, ...s.sessions].slice(0, 200),
               pomoPhase: next,
               pomoCycle: newCycle,
@@ -660,6 +668,10 @@ export const useLife = create<LifeState>()(
         // Default auto-backup on for users persisted before it existed.
         if (state?.settings && state.settings.autoBackup === undefined) {
           state.settings.autoBackup = true;
+        }
+        // Default theme for users persisted before light mode existed.
+        if (state?.settings && state.settings.theme === undefined) {
+          state.settings.theme = "dark";
         }
         state?.hydrate();
         state?.ensureToday();

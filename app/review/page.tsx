@@ -154,6 +154,64 @@ export default function ReviewPage() {
         ))}
       </div>
 
+      {/* Per-day history — what got finished, by date */}
+      {history.length > 0 && (
+        <>
+          <p className="mb-2 mt-7 text-xs uppercase tracking-widest text-mist-faint">
+            历史记录 · 每天完成了什么
+          </p>
+          <div className="space-y-3">
+            {history.map((d) => {
+              const dBlocks = (d.completedBlocks ?? [])
+                .map((id) => blocks.find((b) => b.id === id)?.title)
+                .filter((x): x is string => !!x);
+              const dTasks = d.completedTasks ?? [];
+              const empty = dBlocks.length === 0 && dTasks.length === 0;
+              return (
+                <div
+                  key={d.date}
+                  className="rounded-2xl border border-ink-line bg-ink-card p-4"
+                >
+                  <div className="flex items-baseline justify-between">
+                    <span className="numeric text-sm font-semibold text-mist">
+                      {d.date.slice(5)}
+                    </span>
+                    <span className="numeric text-xs text-mist-faint">
+                      {d.score} 分 · {d.pomodorosDone} 🍅
+                    </span>
+                  </div>
+                  {empty ? (
+                    <p className="mt-1.5 text-xs text-mist-faint">
+                      这天没有完成记录
+                    </p>
+                  ) : (
+                    <ul className="mt-2 space-y-1">
+                      {dTasks.map((t, i) => (
+                        <li
+                          key={`t-${i}`}
+                          className="flex items-center gap-2 text-sm text-mist-dim"
+                        >
+                          <span className="text-sage">✓</span>
+                          <span>{t}</span>
+                        </li>
+                      ))}
+                      {dBlocks.map((t, i) => (
+                        <li
+                          key={`b-${i}`}
+                          className="flex items-center gap-2 text-sm text-mist-faint"
+                        >
+                          <span className="text-sage">·</span>
+                          <span>{t}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
     </div>
   );
 }

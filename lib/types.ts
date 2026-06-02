@@ -68,6 +68,7 @@ export interface DayLog {
   date: string; // YYYY-MM-DD
   completedBlocks: string[]; // block ids you actually finished (earns score)
   skippedBlocks?: string[]; // block ids you left early — advanced past, NOT completed
+  completedTasks?: string[]; // titles of tasks finished this day, for the history log
   pomodorosDone: number;
   focusMinutes: number;
   fitnessDone: boolean;
@@ -89,4 +90,5 @@ export interface Settings {
   sound: boolean;
   openaiKey: string; // optional; enables real LLM sorting
   autoBackup: boolean; // auto-download a JSON backup when one is overdue
+  theme: "dark" | "light"; // UI theme; default dark
 }
