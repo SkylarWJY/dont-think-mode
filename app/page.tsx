@@ -31,6 +31,8 @@ export default function TodayPage() {
   const streak = useLife((s) => s.streak);
   const completeBlock = useLife((s) => s.completeBlock);
   const uncompleteBlock = useLife((s) => s.uncompleteBlock);
+  const skipBlock = useLife((s) => s.skipBlock);
+  const unskipBlock = useLife((s) => s.unskipBlock);
   const nudgeShift = useLife((s) => s.nudgeShift);
   const resetShift = useLife((s) => s.resetShift);
   const setFitness = useLife((s) => s.setFitness);
@@ -76,10 +78,16 @@ export default function TodayPage() {
   const topTask = ordered.find((t) => !t.done && !t.optional);
   const planDone = ordered.filter((t) => t.done).length;
   const doneToday = state.now ? today.completedBlocks.includes(state.now.id) : false;
+  // "Moved on early" — advanced past this block without finishing it. Shows the
+  // next-up view like completion, but earns no score and isn't marked done.
+  const movedOn = state.now
+    ? (today.skippedBlocks ?? []).includes(state.now.id)
+    : false;
+  const advanced = doneToday || movedOn; // no longer the active block, either way
   const minsToNext = state.next ? Math.max(0, state.next.start - min) : 0;
 
   // Pomodoro readout for the NOW ring when the current block is Deep Work.
-  const isWorkNow = !!state.now?.pomodoro && !doneToday;
+  const isWorkNow = !!state.now?.pomodoro && !advanced;
   const pomoIsBreak = pomoPhase !== "focus";
   const pomoTotalSec =
     (pomoPhase === "focus"
@@ -173,13 +181,17 @@ export default function TodayPage() {
           </Link>
         ) : (
           <Ring
-            progress={doneToday ? 1 : state.now ? state.progress : 0}
-            color={doneToday ? "#9db8a4" : accent}
+            progress={advanced ? 1 : state.now ? state.progress : 0}
+            color={doneToday ? "#9db8a4" : movedOn ? "#6b6b73" : accent}
           >
             {state.now ? (
-              doneToday ? (
+              advanced ? (
                 <>
-                  <span className="text-4xl text-sage">✓</span>
+                  <span
+                    className={`text-4xl ${doneToday ? "text-sage" : "text-mist-faint"}`}
+                  >
+                    {doneToday ? "✓" : "→"}
+                  </span>
                   {state.next && (
                     <span className="mt-1 text-xs text-mist-faint">
                       下一项 {fmtLeft(minsToNext)}
@@ -210,6 +222,11 @@ export default function TodayPage() {
             <p className="mt-1 text-sm text-sage">
               ✓ 已完成{state.next ? ` · 下一项 ${state.next.title}` : ""}
             </p>
+          ) : movedOn ? (
+            <p className="mt-1 text-sm text-mist-faint">
+              → 已提前进入下一项（未标记完成）
+              {state.next ? ` · ${state.next.title}` : ""}
+            </p>
           ) : (
             state.now?.subtitle && (
               <p className="mt-0.5 text-sm text-mist-dim">{state.now.subtitle}</p>
@@ -223,7 +240,7 @@ export default function TodayPage() {
         </div>
 
         {/* Current task inside a work block */}
-        {!doneToday && state.now?.pomodoro && topTask && (
+        {!advanced && state.now?.pomodoro && topTask && (
           <Link
             href="/pomodoro"
             className="mt-4 w-full rounded-2xl border border-ink-line bg-ink-card px-4 py-3"
@@ -237,7 +254,7 @@ export default function TodayPage() {
             </p>
           </Link>
         )}
-        {!doneToday && state.now?.pomodoro && !topTask && (
+        {!advanced && state.now?.pomodoro && !topTask && (
           <Link
             href="/plan"
             className="mt-4 w-full rounded-2xl border border-dashed border-ink-line px-4 py-3 text-center text-sm text-mist-dim"
@@ -247,7 +264,7 @@ export default function TodayPage() {
         )}
 
         {/* Checklist for ritual blocks */}
-        {!doneToday && state.now?.checklist && (
+        {!advanced && state.now?.checklist && (
           <div className="mt-4 w-full rounded-2xl border border-ink-line bg-ink-card p-4">
             <ul className="space-y-1.5">
               {state.now.checklist.map((c) => (
@@ -260,30 +277,55 @@ export default function TodayPage() {
           </div>
         )}
 
-        {/* Complete / advance — works for every block, including Deep Work */}
-        {state.now && (
+        {/* Already advanced (finished OR moved on early) → undo */}
+        {state.now && advanced && (
           <button
             onClick={() =>
               doneToday
                 ? uncompleteBlock(state.now!.id)
-                : completeBlock(state.now!.id, state.now!.score)
+                : unskipBlock(state.now!.id)
             }
             className={`mt-4 w-full rounded-2xl py-3 text-sm font-medium transition-colors ${
               doneToday
                 ? "border border-sage/40 bg-sage/10 text-sage"
-                : "bg-mist text-ink"
+                : "border border-ink-line bg-ink-soft text-mist-dim"
             }`}
           >
-            {doneToday
-              ? "↩ 撤销，回到这一块"
-              : state.now.type === "work"
-              ? "提前结束这段，进入下一项 →"
-              : `完成这个时间块  +${state.now.score}`}
+            ↩ 撤销，回到这一块
           </button>
         )}
 
+        {/* Deep Work is a container — leaving early is NOT completing it, so the
+            only action is to move on (no score, no ✓). */}
+        {state.now && !advanced && state.now.pomodoro && (
+          <button
+            onClick={() => skipBlock(state.now!.id)}
+            className="mt-4 w-full rounded-2xl border border-ink-line bg-ink-soft py-3 text-sm font-medium text-mist-dim"
+          >
+            提前结束这段，进入下一项 →
+          </button>
+        )}
+
+        {/* Ritual blocks → finish for score, OR move on early without credit */}
+        {state.now && !advanced && !state.now.pomodoro && (
+          <>
+            <button
+              onClick={() => completeBlock(state.now!.id, state.now!.score)}
+              className="mt-4 w-full rounded-2xl bg-mist py-3 text-sm font-medium text-ink"
+            >
+              完成这个时间块  +{state.now.score}
+            </button>
+            <button
+              onClick={() => skipBlock(state.now!.id)}
+              className="mt-2 w-full rounded-2xl border border-ink-line py-2 text-xs text-mist-faint"
+            >
+              没做完？提前进入下一项（不算完成）→
+            </button>
+          </>
+        )}
+
         {/* Running late → one tap snaps THIS block to now, pushing the rest back */}
-        {state.now && (
+        {state.now && !advanced && (
           <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-xs text-mist-faint">
             {startDelay >= 1 ? (
               <button

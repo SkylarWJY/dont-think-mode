@@ -93,6 +93,8 @@ interface LifeState {
   // execution
   completeBlock: (blockId: string, score: number) => void;
   uncompleteBlock: (blockId: string) => void;
+  skipBlock: (blockId: string) => void;
+  unskipBlock: (blockId: string) => void;
   nudgeShift: (deltaMin: number) => void;
   resetShift: () => void;
   recordPomodoro: (taskId: string | undefined, taskTitle: string, minutes: number) => void;
@@ -420,6 +422,8 @@ export const useLife = create<LifeState>()(
           const today = {
             ...s.today,
             completedBlocks: [...s.today.completedBlocks, blockId],
+            // completing and "moved on early" are mutually exclusive
+            skippedBlocks: (s.today.skippedBlocks ?? []).filter((b) => b !== blockId),
           };
           if (blockId === "fitness") today.fitnessDone = true;
           if (blockId === "sleep") today.sleptOnTime = true;
@@ -438,6 +442,30 @@ export const useLife = create<LifeState>()(
           if (blockId === "morning-upgrade") today.beautyDone = false;
           return { today: recompute(today, s.tasks) };
         }),
+
+      // Move on to the next block early WITHOUT marking it done. No score, not
+      // counted as completed — it just advances the "Now" view to what's next.
+      skipBlock: (blockId) =>
+        set((s) => {
+          const skipped = s.today.skippedBlocks ?? [];
+          if (skipped.includes(blockId)) return {};
+          return {
+            today: {
+              ...s.today,
+              skippedBlocks: [...skipped, blockId],
+              // never let a skipped block also read as completed
+              completedBlocks: s.today.completedBlocks.filter((b) => b !== blockId),
+            },
+          };
+        }),
+
+      unskipBlock: (blockId) =>
+        set((s) => ({
+          today: {
+            ...s.today,
+            skippedBlocks: (s.today.skippedBlocks ?? []).filter((b) => b !== blockId),
+          },
+        })),
 
       nudgeShift: (deltaMin) =>
         set((s) => {

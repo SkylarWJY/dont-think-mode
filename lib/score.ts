@@ -14,6 +14,7 @@ export function emptyDayLog(date: string): DayLog {
   return {
     date,
     completedBlocks: [],
+    skippedBlocks: [],
     pomodorosDone: 0,
     focusMinutes: 0,
     fitnessDone: false,

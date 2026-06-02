@@ -66,7 +66,8 @@ export interface PomodoroSession {
 
 export interface DayLog {
   date: string; // YYYY-MM-DD
-  completedBlocks: string[]; // block ids
+  completedBlocks: string[]; // block ids you actually finished (earns score)
+  skippedBlocks?: string[]; // block ids you left early — advanced past, NOT completed
   pomodorosDone: number;
   focusMinutes: number;
   fitnessDone: boolean;
