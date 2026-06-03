@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Header from "@/components/Header";
 import { useLife } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
 import { fmtClock } from "@/lib/time";
+import { buildDayCard, shareImageBlob } from "@/lib/shareCard";
 
 export default function ReviewPage() {
   const hydrated = useHydrated();
@@ -13,6 +14,9 @@ export default function ReviewPage() {
   const tasks = useLife((s) => s.tasks);
   const streak = useLife((s) => s.streak);
   const settings = useLife((s) => s.settings);
+  const [cardUrl, setCardUrl] = useState<string | null>(null);
+  const [cardBlob, setCardBlob] = useState<Blob | null>(null);
+  const [cardBusy, setCardBusy] = useState(false);
 
   const all = useMemo(() => [today, ...history], [today, history]);
   const week = useMemo(() => all.slice(0, 7), [all]);
@@ -46,6 +50,30 @@ export default function ReviewPage() {
     { label: "晨间养护", ok: today.beautyDone },
     { label: `${fmtClock(settings.sleepMinutes)} 前睡觉`, ok: today.sleptOnTime },
   ];
+
+  async function genCard() {
+    setCardBusy(true);
+    const completed = [...doneBlocks, ...doneTasks.map((t) => t.title)];
+    const blob = await buildDayCard({
+      date: today.date,
+      score: today.score,
+      pomodoros: today.pomodorosDone,
+      focusMinutes: today.focusMinutes,
+      streak,
+      completed,
+      name: settings.name,
+    });
+    if (cardUrl) URL.revokeObjectURL(cardUrl);
+    setCardBlob(blob);
+    setCardUrl(URL.createObjectURL(blob));
+    setCardBusy(false);
+  }
+
+  function closeCard() {
+    if (cardUrl) URL.revokeObjectURL(cardUrl);
+    setCardUrl(null);
+    setCardBlob(null);
+  }
 
   return (
     <div>
@@ -98,6 +126,49 @@ export default function ReviewPage() {
           </>
         )}
       </div>
+
+      {/* Share today's card → Save to Photos */}
+      {!nothingYet && !cardUrl && (
+        <button
+          onClick={genCard}
+          disabled={cardBusy}
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-amber/40 bg-amber/10 py-3 text-sm font-medium text-amber active:bg-amber/20 disabled:opacity-60"
+        >
+          {cardBusy ? "生成中…" : "📷 生成今日卡片 · 存到相册 / 分享"}
+        </button>
+      )}
+
+      {/* Generated card preview + save */}
+      {cardUrl && (
+        <div className="mt-3 rounded-2xl border border-ink-line bg-ink-card p-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={cardUrl}
+            alt="今日卡片"
+            className="w-full rounded-xl border border-ink-line"
+          />
+          <div className="mt-3 flex gap-2">
+            <button
+              onClick={() =>
+                cardBlob &&
+                shareImageBlob(cardBlob, `life-os-${today.date}.png`)
+              }
+              className="flex-1 rounded-xl bg-mist py-3 text-sm font-semibold text-ink"
+            >
+              存到相册 / 分享
+            </button>
+            <button
+              onClick={closeCard}
+              className="rounded-xl border border-ink-line bg-ink-soft px-5 text-sm text-mist-dim"
+            >
+              关闭
+            </button>
+          </div>
+          <p className="mt-2 text-center text-[11px] text-mist-faint">
+            手机上点「存到相册」→ 在分享菜单里选「存储图像」
+          </p>
+        </div>
+      )}
 
       {/* Score row */}
       <div className="mt-4 grid grid-cols-3 gap-3">

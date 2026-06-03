@@ -19,6 +19,7 @@ const DEFAULT_SETTINGS: Settings = {
   openaiKey: "",
   autoBackup: true,
   theme: "dark",
+  nightlyBackup: true,
 };
 
 // Neutral starter goals — edit these in Goals to make them yours. The AI/local
@@ -672,6 +673,10 @@ export const useLife = create<LifeState>()(
         // Default theme for users persisted before light mode existed.
         if (state?.settings && state.settings.theme === undefined) {
           state.settings.theme = "dark";
+        }
+        // Default nightly backup on for users persisted before it existed.
+        if (state?.settings && state.settings.nightlyBackup === undefined) {
+          state.settings.nightlyBackup = true;
         }
         state?.hydrate();
         state?.ensureToday();

@@ -253,7 +253,16 @@ export default function SettingsPage() {
 
       <Group title="数据备份">
         <p className="text-[11px] leading-relaxed text-mist-faint">
-          数据只存在这台设备的浏览器里。换设备、清缓存前，先手动导出一份；在新设备上导入即可恢复目标、历史与连续天数。手机上「导出备份」可存到「文件 / iCloud」，放进 iCloud 的 LifeOS 文件夹后，Mac 会自动把当天小结同步成 Obsidian 笔记。
+          数据只存在这台设备的浏览器里。换设备、清缓存前，先手动导出一份；在新设备上导入即可恢复目标、历史与连续天数。手机上「导出备份」可存到「文件 / iCloud」，Mac 会自动把当天小结同步成 Obsidian 笔记。
+        </p>
+        <Toggle
+          label="每晚备份提醒（11:30pm）"
+          value={settings.nightlyBackup}
+          onChange={(v) => update({ nightlyBackup: v })}
+        />
+        <p className="text-[11px] leading-relaxed text-mist-faint">
+          晚上 11:30 后打开 App，会弹出一键「存到 iCloud」。配合 iOS「快捷指令 ›
+          自动化」每晚定时打开本 App，就能接近全自动备份。
         </p>
         <p
           className={`text-[11px] ${
