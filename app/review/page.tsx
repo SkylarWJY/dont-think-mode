@@ -17,6 +17,7 @@ export default function ReviewPage() {
   const [cardUrl, setCardUrl] = useState<string | null>(null);
   const [cardBlob, setCardBlob] = useState<Blob | null>(null);
   const [cardBusy, setCardBusy] = useState(false);
+  const [period, setPeriod] = useState<"week" | "month">("week");
 
   const all = useMemo(() => [today, ...history], [today, history]);
   const week = useMemo(() => all.slice(0, 7), [all]);
@@ -42,6 +43,25 @@ export default function ReviewPage() {
     doneBlocks.length === 0 &&
     doneTasks.length === 0 &&
     today.pomodorosDone === 0;
+
+  // 本周 / 本月 回顾 — aggregate what got done across the period, grouped by day.
+  const periodDays = period === "week" ? week : month;
+  const periodItems = periodDays.map((d) => ({
+    date: d.date,
+    score: d.score,
+    pomos: d.pomodorosDone,
+    tasks: d.completedTasks ?? [],
+    blocks: (d.completedBlocks ?? [])
+      .map((id) => blocks.find((b) => b.id === id)?.title)
+      .filter((x): x is string => !!x),
+  }));
+  const sumTasks = periodItems.reduce((n, d) => n + d.tasks.length, 0);
+  const sumPomos = periodDays.reduce((n, d) => n + d.pomodorosDone, 0);
+  const sumFocus = periodDays.reduce((n, d) => n + d.focusMinutes, 0);
+  const daysMet = periodDays.filter((d) => d.score >= 60).length;
+  const itemDays = periodItems.filter(
+    (d) => d.tasks.length > 0 || d.blocks.length > 0 || d.pomos > 0
+  );
 
   const checks: { label: string; ok: boolean }[] = [
     { label: "早起 · Morning Routine", ok: today.completedBlocks.includes("morning-upgrade") },
@@ -225,63 +245,78 @@ export default function ReviewPage() {
         ))}
       </div>
 
-      {/* Per-day history — what got finished, by date */}
-      {history.length > 0 && (
-        <>
-          <p className="mb-2 mt-7 text-xs uppercase tracking-widest text-mist-faint">
-            历史记录 · 每天完成了什么
-          </p>
-          <div className="space-y-3">
-            {history.map((d) => {
-              const dBlocks = (d.completedBlocks ?? [])
-                .map((id) => blocks.find((b) => b.id === id)?.title)
-                .filter((x): x is string => !!x);
-              const dTasks = d.completedTasks ?? [];
-              const empty = dBlocks.length === 0 && dTasks.length === 0;
-              return (
-                <div
-                  key={d.date}
-                  className="rounded-2xl border border-ink-line bg-ink-card p-4"
-                >
-                  <div className="flex items-baseline justify-between">
-                    <span className="numeric text-sm font-semibold text-mist">
-                      {d.date.slice(5)}
-                    </span>
-                    <span className="numeric text-xs text-mist-faint">
-                      {d.score} 分 · {d.pomodorosDone} 🍅
-                    </span>
-                  </div>
-                  {empty ? (
-                    <p className="mt-1.5 text-xs text-mist-faint">
-                      这天没有完成记录
-                    </p>
-                  ) : (
-                    <ul className="mt-2 space-y-1">
-                      {dTasks.map((t, i) => (
-                        <li
-                          key={`t-${i}`}
-                          className="flex items-center gap-2 text-sm text-mist-dim"
-                        >
-                          <span className="text-sage">✓</span>
-                          <span>{t}</span>
-                        </li>
-                      ))}
-                      {dBlocks.map((t, i) => (
-                        <li
-                          key={`b-${i}`}
-                          className="flex items-center gap-2 text-sm text-mist-faint"
-                        >
-                          <span className="text-sage">·</span>
-                          <span>{t}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </>
+      {/* 回顾 — what I got done this week / month, grouped by day */}
+      <div className="mb-2 mt-7 flex items-center justify-between">
+        <p className="text-xs uppercase tracking-widest text-mist-faint">回顾</p>
+        <div className="flex gap-1 rounded-full border border-ink-line bg-ink-soft p-0.5">
+          {(["week", "month"] as const).map((p) => (
+            <button
+              key={p}
+              onClick={() => setPeriod(p)}
+              className={`rounded-full px-3 py-1 text-xs transition-colors ${
+                period === p ? "bg-mist text-ink" : "text-mist-faint"
+              }`}
+            >
+              {p === "week" ? "本周" : "本月"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* period totals */}
+      <div className="rounded-2xl border border-ink-line bg-ink-card p-4">
+        <p className="text-[15px] leading-relaxed text-mist">
+          {period === "week" ? "这周" : "这个月"}你完成了{" "}
+          <span className="font-semibold text-sage">{sumTasks}</span> 件任务、
+          <span className="font-semibold text-sage">{sumPomos}</span> 个番茄钟、
+          <span className="font-semibold text-sage">{sumFocus}</span> 分钟专注，
+          <span className="font-semibold text-sage">{daysMet}</span>/{periodDays.length} 天达标。
+        </p>
+      </div>
+
+      {/* grouped by day */}
+      {itemDays.length > 0 ? (
+        <div className="mt-3 space-y-3">
+          {itemDays.map((d) => (
+            <div
+              key={d.date}
+              className="rounded-2xl border border-ink-line bg-ink-card p-4"
+            >
+              <div className="flex items-baseline justify-between">
+                <span className="numeric text-sm font-semibold text-mist">
+                  {d.date.slice(5)}
+                </span>
+                <span className="numeric text-xs text-mist-faint">
+                  {d.score} 分 · {d.pomos} 🍅
+                </span>
+              </div>
+              <ul className="mt-2 space-y-1">
+                {d.tasks.map((t, i) => (
+                  <li
+                    key={`t-${i}`}
+                    className="flex items-center gap-2 text-sm text-mist-dim"
+                  >
+                    <span className="text-sage">✓</span>
+                    <span>{t}</span>
+                  </li>
+                ))}
+                {d.blocks.map((t, i) => (
+                  <li
+                    key={`b-${i}`}
+                    className="flex items-center gap-2 text-sm text-mist-faint"
+                  >
+                    <span className="text-sage">·</span>
+                    <span>{t}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-3 text-center text-xs text-mist-faint">
+          {period === "week" ? "本周" : "本月"}还没有完成记录
+        </p>
       )}
     </div>
   );

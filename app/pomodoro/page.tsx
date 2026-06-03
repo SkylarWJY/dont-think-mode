@@ -5,7 +5,7 @@ import Ring from "@/components/Ring";
 import Header from "@/components/Header";
 import { useLife } from "@/lib/store";
 import { useHydrated, useTick } from "@/lib/hooks";
-import { fmtDuration } from "@/lib/time";
+import { fmtDuration, fmtLeft, nowMinutes } from "@/lib/time";
 import { productivityScore } from "@/lib/score";
 
 export default function PomodoroPage() {
@@ -71,6 +71,16 @@ export default function PomodoroPage() {
   const pomoIndex = cycle + 1;
   const inSet = phase === "long" ? SET : cycle % SET; // completed in this set
   const toLong = phase === "long" ? SET : SET - (cycle % SET); // until long break
+  // How much of the *waking* day (wake → sleep) has passed — for the vertical
+  // day rail. Morning sits at the top; the fill grows downward as the day goes.
+  const nowMin = nowMinutes();
+  const dayStart = settings.wakeMinutes;
+  const dayEnd = Math.max(settings.sleepMinutes, dayStart + 1);
+  const dayElapsed = Math.min(Math.max(nowMin - dayStart, 0), dayEnd - dayStart);
+  const dayFrac = dayElapsed / (dayEnd - dayStart);
+  const dayPct = Math.round(dayFrac * 100);
+  const dayLeftMin = Math.max(0, dayEnd - nowMin);
+
   const rhythmHint =
     phase === "long"
       ? "做满 4 个 · 长休息"
@@ -80,6 +90,29 @@ export default function PomodoroPage() {
 
   return (
     <div>
+      {/* Vertical day rail — how much of today (wake→sleep) has passed. */}
+      <div className="pointer-events-none fixed right-1.5 top-[max(0.75rem,env(safe-area-inset-top))] bottom-24 z-40 flex w-9 flex-col items-center">
+        <span className="numeric mb-1 text-[9px] text-mist-faint">起</span>
+        <div className="relative w-1.5 flex-1 overflow-hidden rounded-full bg-ink-line/50">
+          <div
+            className="absolute inset-x-0 top-0 rounded-full bg-amber/70"
+            style={{ height: `${dayPct}%` }}
+          />
+          {/* current-position marker */}
+          <div
+            className="absolute inset-x-[-3px] h-[2px] bg-amber"
+            style={{ top: `calc(${dayPct}% - 1px)` }}
+          />
+        </div>
+        <span className="numeric mt-1 text-[9px] text-mist-faint">睡</span>
+        <span className="numeric mt-1 text-[10px] font-semibold text-amber">
+          {dayPct}%
+        </span>
+        <span className="numeric text-[8px] leading-tight text-mist-faint">
+          剩{fmtLeft(dayLeftMin)}
+        </span>
+      </div>
+
       <Header title="Deep Work" sub="一次只做眼前这一件事。" />
 
       <div className="mb-5 rounded-2xl border border-ink-line bg-ink-card px-4 py-3 text-center">
