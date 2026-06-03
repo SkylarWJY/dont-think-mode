@@ -73,7 +73,10 @@ export default function TodayPage() {
   // How long the current block has already been running — i.e. how late you are
   // starting it. "现在开始" snaps its start to now and pushes the rest of the day.
   const startDelay = state.now ? Math.max(0, Math.round(min - state.now.start)) : 0;
-  const ordered = [...tasks].sort((a, b) => a.rank - b.rank);
+  // Finished tasks sink to the bottom of the plan; unfinished stay on top.
+  const ordered = [...tasks].sort(
+    (a, b) => Number(a.done) - Number(b.done) || a.rank - b.rank
+  );
   // Skip tasks deferred via "今天可以不做" (optional) — they roll to tomorrow,
   // so the current task should advance to the next active one. Honor a manual
   // pick from the Focus page so both screens agree on what's "current".

@@ -65,8 +65,12 @@ export default function PlanPage() {
     }
   }
 
+  // Finished tasks sink to the bottom; unfinished stay on top (each group by rank).
   const ordered = useMemo(
-    () => [...tasks].sort((a, b) => a.rank - b.rank),
+    () =>
+      [...tasks].sort(
+        (a, b) => Number(a.done) - Number(b.done) || a.rank - b.rank
+      ),
     [tasks]
   );
   const blocks = useLife((s) => s.schedule);
