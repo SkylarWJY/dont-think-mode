@@ -10,6 +10,8 @@
     "obsidian": "node scripts/to-obsidian.mjs"
   },
   "dependencies": {
+    "@capacitor/core": "^8.4.0",
+    "@capacitor/ios": "^8.4.0",
     "framer-motion": "^11.3.0",
     "next": "14.2.5",
     "react": "^18.3.1",
@@ -17,6 +19,7 @@
     "zustand": "^4.5.4"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.4.0",
     "@types/node": "^20.14.0",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",

@@ -1,4 +1,5 @@
 import { Goal, Task } from "./types";
+import { API_BASE } from "./apiBase";
 
 let _id = 0;
 const uid = () => `t${Date.now()}_${_id++}`;
@@ -128,7 +129,7 @@ export async function sortTasks(
     return { tasks: heuristicSort(titles, goals), source: "local" };
   }
   try {
-    const res = await fetch("/api/sort", {
+    const res = await fetch(`${API_BASE}/api/sort`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ titles, goals, key: openaiKey }),

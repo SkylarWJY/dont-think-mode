@@ -8,6 +8,7 @@ import { useHydrated } from "@/lib/hooks";
 import { packTasksIntoWork } from "@/lib/schedule";
 import { fmtClock } from "@/lib/time";
 import { parseTasks, sortTasks } from "@/lib/ai";
+import { API_BASE } from "@/lib/apiBase";
 
 const EXAMPLE =
   "今天想做：给潜在用户发消息，写落地页第一版，录一条产品 demo。";
@@ -134,7 +135,7 @@ export default function PlanPage() {
       const bytes = new Uint8Array(buf);
       for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
       const base64 = btoa(bin);
-      const res = await fetch("/api/transcribe", {
+      const res = await fetch(`${API_BASE}/api/transcribe`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ audio: base64, mimeType, key: openaiKey }),
