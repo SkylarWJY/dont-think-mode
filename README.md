@@ -50,13 +50,17 @@ And the moment you step into a focus block — **the timer is already running.**
 - 🤖 **AI sorts your day, you don't.** Dump today's tasks in raw. They get ranked against your goals — locally, or with your own OpenAI / Gemini key. You execute top-down and never agonize over priority again.
 - 📈 **A score that becomes action.** Instead of a guilt-trip streak, it surfaces the *specific* high-value moves still left on the table today, so "do better" turns into "do this."
 - ↩️ **Unfinished work rolls over.** Whatever you didn't close carries to tomorrow, automatically re-ranked. No cleanup, no shame spiral.
-- 🔒 **100% local. No account, no cloud, no tracking.** Everything lives in your browser. Export a JSON backup to hop devices. Your day is nobody's data.
+- 🍅 **Switch tasks, keep the clock.** Mid-session, tap any task to focus it next — the timer never resets, and every task keeps its own pomodoro count.
+- 📸 **Share the day, not the to-do list.** One tap turns today into a clean card — save it to Photos, keep yourself honest.
+- 📊 **Weekly & monthly recap.** See exactly what you actually shipped this week and this month, grouped by day — not just a number.
+- 🌗 **Dark by default, light on demand.** A calm terminal-ish dark, or flip to light in one tap.
+- 🔒 **Local-first — your data is yours.** Everything works offline in your browser, no tracking, ever. Opt into one-tap **cloud sync** (email + password, row-level-security) and it auto-saves and follows you across devices. Never "save" again.
 
 ## Design principles
 
 1. **Remove choices, not features.** Every screen must answer *"what now?"* in one glance.
 2. **Make time visible.** Countdowns over checklists. Momentum over planning.
-3. **Local-first, always.** No login wall, no server round-trip, no telemetry.
+3. **Local-first, always.** No login wall, no telemetry. Cloud sync is opt-in — and the app is fully usable without ever touching it.
 
 ## Quick start
 
@@ -82,13 +86,14 @@ The seed goals and daily rhythm are neutral defaults. Edit them in-app:
 - **Schedule** — your blocks, deep-work windows, wake / sleep times.
 - **Settings** — pomodoro lengths, display name, notifications.
 
-Nothing you type ever leaves your device.
+Nothing leaves your device — unless you turn on cloud sync, and then only your own account can read it.
 
 ## Stack
 
 - **Next.js 14** (App Router) · **TypeScript** · **Tailwind CSS**
 - **Zustand** — persisted, local-first state
-- **Installable PWA** — offline-capable, home-screen ready
+- **Supabase** — optional, RLS-secured cloud sync (off by default)
+- **Installable PWA** — offline-capable, home-screen ready · iOS shell via **Capacitor**
 
 ## License
 
