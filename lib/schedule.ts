@@ -196,11 +196,11 @@ export function packTasksIntoWork(
   const ordered = [...tasks].sort((a, b) => a.rank - b.rank);
   for (const task of ordered) {
     if (task.done) continue;
-    // Prefer morning block for deep/morning tasks, else first with room.
-    const preferMorning = task.morning || task.deep;
-    const candidates = preferMorning ? cursors : [...cursors].reverse();
+    // Fill work blocks in time order, strictly by priority: your #1 task takes
+    // the earliest Deep Work slot, #2 the next, and so on. Timeline order now
+    // matches plan priority — no reshuffling by deep/morning flags.
     const target =
-      candidates.find((c) => c.t + task.pomodoros * slotMin <= c.block.end) ??
+      cursors.find((c) => c.t + task.pomodoros * slotMin <= c.block.end) ??
       cursors.find((c) => c.t + slotMin <= c.block.end);
     if (!target) continue;
 

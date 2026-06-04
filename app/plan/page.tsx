@@ -25,6 +25,7 @@ export default function PlanPage() {
   const appendTasks = useLife((s) => s.appendTasks);
   const clearTasks = useLife((s) => s.clearTasks);
   const reorderTask = useLife((s) => s.reorderTask);
+  const moveTaskToTop = useLife((s) => s.moveTaskToTop);
   const toggleOptional = useLife((s) => s.toggleTaskOptional);
   const toggleDone = useLife((s) => s.toggleTaskDone);
   const addTask = useLife((s) => s.addTask);
@@ -413,6 +414,13 @@ export default function PlanPage() {
                     </div>
                   </div>
                   <div className="flex shrink-0 flex-col gap-1.5">
+                    <button
+                      onClick={() => moveTaskToTop(t.id)}
+                      aria-label="置顶为第一优先"
+                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-amber/40 bg-amber/10 text-base text-amber active:bg-amber/20"
+                    >
+                      ⤒
+                    </button>
                     <button
                       onClick={() => reorderTask(t.id, -1)}
                       aria-label="上移"
