@@ -6,6 +6,7 @@ import BlockReminders from "@/components/BlockReminders";
 import PomoEngine from "@/components/PomoEngine";
 import AutoBackup from "@/components/AutoBackup";
 import NightlyBackup from "@/components/NightlyBackup";
+import CloudSync from "@/components/CloudSync";
 import ThemeApplier from "@/components/ThemeApplier";
 
 // Apply the saved theme before first paint so there's no dark→light flash.
@@ -54,6 +55,7 @@ export default function RootLayout({
         <PomoEngine />
         <AutoBackup />
         <NightlyBackup />
+        <CloudSync />
         <ThemeApplier />
         <main className="mx-auto min-h-dvh w-full max-w-md px-5 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))]">
           {children}

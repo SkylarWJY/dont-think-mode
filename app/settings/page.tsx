@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
+import CloudSyncSettings from "@/components/CloudSyncSettings";
 import { useLife } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
 import { ensureNotificationPermission, chime } from "@/lib/notifications";
@@ -249,6 +250,10 @@ export default function SettingsPage() {
           调整 Life Goals 与权重
           <span className="text-mist-faint">→</span>
         </Link>
+      </Group>
+
+      <Group title="云同步">
+        <CloudSyncSettings />
       </Group>
 
       <Group title="数据备份">
