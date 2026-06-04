@@ -347,18 +347,23 @@ export default function PlanPage() {
                         ✓
                       </span>
                     ) : (
-                      <select
-                        value={t.rank}
-                        onChange={(e) => setTaskRank(t.id, Number(e.target.value))}
-                        aria-label="优先级序号 · 改成几就排第几"
-                        className="mt-0.5 h-7 w-7 shrink-0 appearance-none rounded-full border border-ink-line bg-ink-soft text-center text-xs font-semibold text-mist-dim focus:border-sage/60 focus:outline-none"
-                      >
-                        {Array.from({ length: tasks.length }, (_, i) => (
-                          <option key={i} value={i + 1}>
-                            {i + 1}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="relative mt-0.5 h-7 w-7 shrink-0">
+                        <span className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-full border border-ink-line bg-ink-soft text-xs font-semibold text-mist-dim">
+                          {t.rank}
+                        </span>
+                        <select
+                          value={t.rank}
+                          onChange={(e) => setTaskRank(t.id, Number(e.target.value))}
+                          aria-label="优先级序号 · 改成几就排第几"
+                          className="absolute inset-0 h-full w-full cursor-pointer rounded-full opacity-0"
+                        >
+                          {Array.from({ length: tasks.length }, (_, i) => (
+                            <option key={i} value={i + 1}>
+                              {i + 1}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     )}
                     <div className="min-w-0 flex-1">
                       {editingId === t.id ? (
