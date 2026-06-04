@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Ring from "@/components/Ring";
 import Header from "@/components/Header";
 import { useLife } from "@/lib/store";
@@ -30,6 +30,16 @@ export default function PomodoroPage() {
   const pomoSkip = useLife((s) => s.pomoSkip);
 
   useTick(1000); // re-render each second so the countdown ticks down
+
+  // When a focus pomodoro just ended, offer a one-tap "mark this task done" —
+  // since completion is always manual, this is the most natural moment to ask.
+  const prevPhase = useRef(phase);
+  const [donePrompt, setDonePrompt] = useState(false);
+  useEffect(() => {
+    if (prevPhase.current === "focus" && phase !== "focus") setDonePrompt(true);
+    if (phase === "focus") setDonePrompt(false);
+    prevPhase.current = phase;
+  }, [phase]);
 
   // Active task queue: not done, not deferred — ordered by priority.
   const queue = useMemo(
@@ -115,6 +125,33 @@ export default function PomodoroPage() {
       </div>
 
       <Header title="Deep Work" sub="一次只做眼前这一件事。" />
+
+      {/* Just-finished-a-pomodoro → one-tap mark the current task done */}
+      {donePrompt && topTask && (
+        <div className="mb-4 rounded-2xl border border-sage/40 bg-sage/10 p-4">
+          <p className="text-sm text-mist">
+            🍅 一个番茄完成!「
+            <span className="font-medium">{topTask.title}</span>」做完了吗?
+          </p>
+          <div className="mt-3 flex gap-2">
+            <button
+              onClick={() => {
+                toggleDone(topTask.id);
+                setDonePrompt(false);
+              }}
+              className="flex-1 rounded-xl bg-sage py-2.5 text-sm font-semibold text-ink"
+            >
+              ✓ 做完了
+            </button>
+            <button
+              onClick={() => setDonePrompt(false)}
+              className="rounded-xl border border-ink-line bg-ink-soft px-5 text-sm text-mist-dim"
+            >
+              还没,继续
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="mb-5 rounded-2xl border border-ink-line bg-ink-card px-4 py-3 text-center">
         <p className="text-[10px] uppercase tracking-widest text-amber">
