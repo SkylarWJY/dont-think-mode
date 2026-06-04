@@ -50,6 +50,7 @@ export default function ReviewPage() {
     date: d.date,
     score: d.score,
     pomos: d.pomodorosDone,
+    focus: d.focusMinutes,
     tasks: d.completedTasks ?? [],
     blocks: (d.completedBlocks ?? [])
       .map((id) => blocks.find((b) => b.id === id)?.title)
@@ -71,22 +72,29 @@ export default function ReviewPage() {
     { label: `${fmtClock(settings.sleepMinutes)} 前睡觉`, ok: today.sleptOnTime },
   ];
 
-  async function genCard() {
+  async function genCard(d: {
+    date: string;
+    score: number;
+    pomodoros: number;
+    focusMinutes: number;
+    completed: string[];
+    streak?: number;
+  }) {
     setCardBusy(true);
-    const completed = [...doneBlocks, ...doneTasks.map((t) => t.title)];
     const blob = await buildDayCard({
-      date: today.date,
-      score: today.score,
-      pomodoros: today.pomodorosDone,
-      focusMinutes: today.focusMinutes,
-      streak,
-      completed,
+      date: d.date,
+      score: d.score,
+      pomodoros: d.pomodoros,
+      focusMinutes: d.focusMinutes,
+      streak: d.streak ?? 0,
+      completed: d.completed,
       name: settings.name,
     });
     if (cardUrl) URL.revokeObjectURL(cardUrl);
     setCardBlob(blob);
     setCardUrl(URL.createObjectURL(blob));
     setCardBusy(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function closeCard() {
@@ -150,7 +158,16 @@ export default function ReviewPage() {
       {/* Share today's card → Save to Photos */}
       {!nothingYet && !cardUrl && (
         <button
-          onClick={genCard}
+          onClick={() =>
+            genCard({
+              date: today.date,
+              score: today.score,
+              pomodoros: today.pomodorosDone,
+              focusMinutes: today.focusMinutes,
+              completed: [...doneBlocks, ...doneTasks.map((t) => t.title)],
+              streak,
+            })
+          }
           disabled={cardBusy}
           className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-amber/40 bg-amber/10 py-3 text-sm font-medium text-amber active:bg-amber/20 disabled:opacity-60"
         >
@@ -310,6 +327,21 @@ export default function ReviewPage() {
                   </li>
                 ))}
               </ul>
+              <button
+                onClick={() =>
+                  genCard({
+                    date: d.date,
+                    score: d.score,
+                    pomodoros: d.pomos,
+                    focusMinutes: d.focus,
+                    completed: [...d.tasks, ...d.blocks],
+                  })
+                }
+                disabled={cardBusy}
+                className="mt-3 w-full rounded-xl border border-ink-line py-2 text-xs text-mist-faint active:bg-amber/10 disabled:opacity-60"
+              >
+                📷 生成这天的卡片
+              </button>
             </div>
           ))}
         </div>
