@@ -22,6 +22,10 @@ export default function DemoButton() {
       localStorage.removeItem("lifeos_synced_at");
     } catch {}
     useLife.getState().importData(buildDemoExport());
+    // Pin the demo clock to 2:30 PM so the walkthrough always looks the same.
+    try {
+      localStorage.setItem("lifeos_demo_clock", String(14 * 60 + 30));
+    } catch {}
     setBusy(false);
     setMsg("✓ 演示数据已加载。真实数据安全在云端 —— 在「云同步」重新登录即可恢复。");
   }

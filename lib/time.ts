@@ -1,6 +1,17 @@
 // Time helpers — everything internal is "minutes from midnight".
 
+// Demo mode can pin the clock to a fixed minute (e.g. 14:30) so a walkthrough
+// always looks the same. Set by the demo loader; cleared by any data import.
+export const DEMO_CLOCK_KEY = "lifeos_demo_clock";
+
 export function nowMinutes(d = new Date()): number {
+  if (typeof window !== "undefined") {
+    const o = window.localStorage.getItem(DEMO_CLOCK_KEY);
+    if (o != null) {
+      const n = parseInt(o, 10);
+      if (!Number.isNaN(n)) return n;
+    }
+  }
   return d.getHours() * 60 + d.getMinutes() + d.getSeconds() / 60;
 }
 

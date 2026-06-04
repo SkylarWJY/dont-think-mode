@@ -201,6 +201,10 @@ export const useLife = create<LifeState>()(
 
       importData: (raw) => {
         try {
+          // Any real import/restore exits the pinned demo clock.
+          try {
+            localStorage.removeItem("lifeos_demo_clock");
+          } catch {}
           const parsed = JSON.parse(raw);
           const d = parsed?.data ?? parsed;
           if (!d || typeof d !== "object")
