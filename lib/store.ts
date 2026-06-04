@@ -89,6 +89,7 @@ interface LifeState {
   setTaskPomodoros: (id: string, delta: -1 | 1) => void;
   reorderTask: (id: string, dir: -1 | 1) => void;
   moveTaskToTop: (id: string) => void;
+  setTaskRank: (id: string, newRank: number) => void;
   toggleTaskDone: (id: string) => void;
   toggleTaskOptional: (id: string) => void;
   setActiveTask: (id: string | null) => void;
@@ -405,6 +406,20 @@ export const useLife = create<LifeState>()(
           [arr[i], arr[j]] = [arr[j], arr[i]];
           arr.forEach((t, k) => (t.rank = k + 1));
           return { tasks: arr };
+        }),
+
+      // Set a task's position directly — change the number to 1 and it's first,
+      // to 3 and it's third. Everything else re-ranks around it.
+      setTaskRank: (id, newRank) =>
+        set((s) => {
+          const arr = [...s.tasks].sort((a, b) => a.rank - b.rank);
+          const from = arr.findIndex((t) => t.id === id);
+          if (from < 0) return {};
+          const to = Math.max(1, Math.min(arr.length, Math.round(newRank))) - 1;
+          const [item] = arr.splice(from, 1);
+          arr.splice(to, 0, item);
+          const reordered = arr.map((t, k) => ({ ...t, rank: k + 1 }));
+          return { tasks: reordered, today: recompute(s.today, reordered) };
         }),
 
       // Promote a task to #1 in one tap — no more moving it up row by row.

@@ -24,8 +24,7 @@ export default function PlanPage() {
   const planConfirmed = useLife((s) => s.planConfirmed);
   const appendTasks = useLife((s) => s.appendTasks);
   const clearTasks = useLife((s) => s.clearTasks);
-  const reorderTask = useLife((s) => s.reorderTask);
-  const moveTaskToTop = useLife((s) => s.moveTaskToTop);
+  const setTaskRank = useLife((s) => s.setTaskRank);
   const toggleOptional = useLife((s) => s.toggleTaskOptional);
   const toggleDone = useLife((s) => s.toggleTaskDone);
   const addTask = useLife((s) => s.addTask);
@@ -342,18 +341,25 @@ export default function PlanPage() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 items-start gap-3">
-                    {/* done checkbox */}
-                    <button
-                      onClick={() => toggleDone(t.id)}
-                      aria-label={t.done ? "标记未完成" : "标记完成"}
-                      className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-semibold transition-colors ${
-                        t.done
-                          ? "border-sage bg-sage text-ink"
-                          : "border-ink-line text-mist-dim"
-                      }`}
-                    >
-                      {t.done ? "✓" : t.rank}
-                    </button>
+                    {/* priority number — tap to change to any position */}
+                    {t.done ? (
+                      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-sage bg-sage text-xs font-semibold text-ink">
+                        ✓
+                      </span>
+                    ) : (
+                      <select
+                        value={t.rank}
+                        onChange={(e) => setTaskRank(t.id, Number(e.target.value))}
+                        aria-label="优先级序号 · 改成几就排第几"
+                        className="mt-0.5 h-7 w-7 shrink-0 appearance-none rounded-full border border-ink-line bg-ink-soft text-center text-xs font-semibold text-mist-dim focus:border-sage/60 focus:outline-none"
+                      >
+                        {Array.from({ length: tasks.length }, (_, i) => (
+                          <option key={i} value={i + 1}>
+                            {i + 1}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                     <div className="min-w-0 flex-1">
                       {editingId === t.id ? (
                         <input
@@ -412,29 +418,6 @@ export default function PlanPage() {
                         {t.health && <Tag tone="sage">健康</Tag>}
                       </div>
                     </div>
-                  </div>
-                  <div className="flex shrink-0 flex-col gap-1.5">
-                    <button
-                      onClick={() => moveTaskToTop(t.id)}
-                      aria-label="置顶为第一优先"
-                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-amber/40 bg-amber/10 text-base text-amber active:bg-amber/20"
-                    >
-                      ⤒
-                    </button>
-                    <button
-                      onClick={() => reorderTask(t.id, -1)}
-                      aria-label="上移"
-                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-ink-line bg-ink-soft text-base text-mist-dim active:bg-sage/15"
-                    >
-                      ↑
-                    </button>
-                    <button
-                      onClick={() => reorderTask(t.id, 1)}
-                      aria-label="下移"
-                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-ink-line bg-ink-soft text-base text-mist-dim active:bg-sage/15"
-                    >
-                      ↓
-                    </button>
                   </div>
                 </div>
                 <div className="mt-2 flex items-center gap-4">
