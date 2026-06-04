@@ -83,15 +83,19 @@ export function chime(kind: ChimeKind = "focusDone") {
     };
 
     if (kind === "restDone") {
-      // Back to focus — bright, quick, rising. Feels like "go".
-      play(659.25, 0.0, 0.32, 0.22, "triangle"); // E5
-      play(880.0, 0.16, 0.34, 0.22, "triangle"); // A5
-      play(1318.51, 0.32, 0.5, 0.2, "triangle"); // E6
+      // Back to focus — bright, rising, played twice so it's hard to miss.
+      for (let r = 0; r < 2; r++) {
+        const t = r * 0.5;
+        play(659.25, t, 0.3, 0.3, "triangle"); // E5
+        play(987.77, t + 0.16, 0.34, 0.28, "triangle"); // B5
+      }
     } else {
-      // Time to rest — soft, slow, descending. Feels like "exhale".
-      play(880.0, 0.0, 0.55); // A5
-      play(659.25, 0.26, 0.6); // E5
-      play(523.25, 0.54, 0.85); // C5
+      // Time to rest — an unmissable bell, three rings. Louder, like an alarm.
+      for (let r = 0; r < 3; r++) {
+        const t = r * 0.46;
+        play(880.0, t, 0.3, 0.32, "triangle"); // A5
+        play(659.25, t + 0.18, 0.42, 0.3, "triangle"); // E5
+      }
     }
   } catch {
     // ignore — audio is non-essential

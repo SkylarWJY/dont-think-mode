@@ -412,16 +412,18 @@ export default function PlanPage() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex shrink-0 flex-col gap-1">
+                  <div className="flex shrink-0 flex-col gap-1.5">
                     <button
                       onClick={() => reorderTask(t.id, -1)}
-                      className="h-6 w-6 rounded-md bg-ink-soft text-mist-dim"
+                      aria-label="上移"
+                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-ink-line bg-ink-soft text-base text-mist-dim active:bg-sage/15"
                     >
                       ↑
                     </button>
                     <button
                       onClick={() => reorderTask(t.id, 1)}
-                      className="h-6 w-6 rounded-md bg-ink-soft text-mist-dim"
+                      aria-label="下移"
+                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-ink-line bg-ink-soft text-base text-mist-dim active:bg-sage/15"
                     >
                       ↓
                     </button>

@@ -7,6 +7,7 @@ import { useLife } from "@/lib/store";
 import { useHydrated, useTick } from "@/lib/hooks";
 import { fmtDuration, fmtLeft, nowMinutes } from "@/lib/time";
 import { productivityScore } from "@/lib/score";
+import { ensureNotificationPermission, primeAudio } from "@/lib/notifications";
 
 export default function PomodoroPage() {
   const hydrated = useHydrated();
@@ -196,7 +197,17 @@ export default function PomodoroPage() {
 
         <div className="mt-7 flex w-full gap-3">
           <button
-            onClick={() => (running ? pomoPause() : pomoStart())}
+            onClick={() => {
+              if (running) {
+                pomoPause();
+              } else {
+                // This tap is a user gesture — use it to unlock audio + ask for
+                // notification permission so the end-of-timer alarm can reach you.
+                primeAudio();
+                ensureNotificationPermission();
+                pomoStart();
+              }
+            }}
             className="flex-1 rounded-2xl bg-mist py-3.5 text-sm font-semibold text-ink"
           >
             {running ? "暂停" : "开始"}
