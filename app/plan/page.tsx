@@ -31,6 +31,8 @@ export default function PlanPage() {
   const removeTask = useLife((s) => s.removeTask);
   const editTaskTitle = useLife((s) => s.editTaskTitle);
   const setTaskPomodoros = useLife((s) => s.setTaskPomodoros);
+  const setTaskProgress = useLife((s) => s.setTaskProgress);
+  const toggleRecurring = useLife((s) => s.toggleTaskRecurring);
   const confirmPlan = useLife((s) => s.confirmPlan);
 
   // ── input state ─────────────────────────────────────────────
@@ -415,6 +417,7 @@ export default function PlanPage() {
                             +
                           </button>
                         </div>
+                        {t.recurring && <Tag tone="sage">🔁 每日</Tag>}
                         {t.carriedOver && !t.done && <Tag tone="amber">↩ 顺延</Tag>}
                         {t.deep && <Tag>深度专注</Tag>}
                         {t.morning && <Tag>上午</Tag>}
@@ -422,10 +425,36 @@ export default function PlanPage() {
                         {t.product && <Tag tone="amber">产品</Tag>}
                         {t.health && <Tag tone="sage">健康</Tag>}
                       </div>
+
+                      {/* progress — for work that's partly done */}
+                      <div className="mt-2.5 flex items-center gap-2">
+                        <div className="relative h-2 flex-1">
+                          <div className="absolute inset-0 rounded-full bg-ink-line" />
+                          <div
+                            className="absolute inset-y-0 left-0 rounded-full bg-sage"
+                            style={{ width: `${t.progress ?? 0}%` }}
+                          />
+                          <input
+                            type="range"
+                            min={0}
+                            max={100}
+                            step={5}
+                            value={t.progress ?? 0}
+                            onChange={(e) =>
+                              setTaskProgress(t.id, Number(e.target.value))
+                            }
+                            aria-label="完成进度"
+                            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                          />
+                        </div>
+                        <span className="numeric w-9 shrink-0 text-right text-[11px] text-mist-faint">
+                          {t.progress ?? 0}%
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
-                <div className="mt-2 flex items-center gap-4">
+                <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5">
                   <button
                     onClick={() => toggleDone(t.id)}
                     className={`text-[11px] font-medium underline-offset-2 hover:underline ${
@@ -433,6 +462,14 @@ export default function PlanPage() {
                     }`}
                   >
                     {t.done ? "↩ 标记未完成" : "✓ 标记完成"}
+                  </button>
+                  <button
+                    onClick={() => toggleRecurring(t.id)}
+                    className={`text-[11px] underline-offset-2 hover:underline ${
+                      t.recurring ? "text-sage" : "text-mist-faint"
+                    }`}
+                  >
+                    {t.recurring ? "🔁 每日 · 取消" : "设为每日"}
                   </button>
                   <button
                     onClick={() => toggleOptional(t.id)}

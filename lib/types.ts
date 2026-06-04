@@ -50,6 +50,8 @@ export interface Task {
   optional: boolean; // can be skipped today
   done: boolean;
   donePomodoros: number;
+  progress?: number; // 0–100, manual "how far along" for partial work
+  recurring?: boolean; // a daily routine — reappears fresh every day
   carriedOver?: boolean; // rolled over from a previous unfinished day
 }
 

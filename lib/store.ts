@@ -92,6 +92,8 @@ interface LifeState {
   setTaskRank: (id: string, newRank: number) => void;
   toggleTaskDone: (id: string) => void;
   toggleTaskOptional: (id: string) => void;
+  setTaskProgress: (id: string, progress: number) => void;
+  toggleTaskRecurring: (id: string) => void;
   setActiveTask: (id: string | null) => void;
   clearTasks: () => void;
   confirmPlan: () => void;
@@ -249,16 +251,19 @@ export const useLife = create<LifeState>()(
         // Carry unfinished tasks into the new day — finished ones are already
         // banked in history. Reset daily progress + re-rank, and tag them so
         // the UI can show they rolled over from yesterday.
+        // Recurring tasks reappear fresh every day; other unfinished tasks roll
+        // over (tagged so the UI can show they came from yesterday).
         const carried = tasks
-          .filter((t) => !t.done)
+          .filter((t) => t.recurring || !t.done)
           .sort((a, b) => a.rank - b.rank)
           .map((t, i) => ({
             ...t,
             rank: i + 1,
             done: false,
             donePomodoros: 0,
+            progress: 0,
             optional: false,
-            carriedOver: true,
+            carriedOver: t.recurring ? false : true,
           }));
         set({
           today: emptyDayLog(key),
@@ -464,6 +469,22 @@ export const useLife = create<LifeState>()(
         set((s) => ({
           tasks: s.tasks.map((t) =>
             t.id === id ? { ...t, optional: !t.optional } : t
+          ),
+        })),
+
+      setTaskProgress: (id, progress) =>
+        set((s) => ({
+          tasks: s.tasks.map((t) =>
+            t.id === id
+              ? { ...t, progress: Math.max(0, Math.min(100, Math.round(progress))) }
+              : t
+          ),
+        })),
+
+      toggleTaskRecurring: (id) =>
+        set((s) => ({
+          tasks: s.tasks.map((t) =>
+            t.id === id ? { ...t, recurring: !t.recurring } : t
           ),
         })),
 
