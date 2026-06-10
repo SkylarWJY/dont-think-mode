@@ -3,7 +3,8 @@ import { DayLog, Task } from "./types";
 // Scoring philosophy (set by the user):
 //   1. Finishing the daily routine and 2. the number of tasks done are the
 //   backbone of the score. 3. The day's #1 task (the priority-goal task) is
-//   worth a big bonus.
+//   worth a big bonus. 4. Every finished pomodoro earns credit too — time
+//   invested counts even when a task isn't closed yet.
 export const POINTS = {
   morningRoutine: 15,
   fitness: 15,
@@ -11,6 +12,7 @@ export const POINTS = {
   dance: 10,
   taskDone: 8, // each completed task
   topTask: 25, // the day's #1 — the priority-goal task
+  pomodoro: 5, // each finished focus pomodoro
 };
 
 export function emptyDayLog(date: string): DayLog {
@@ -42,7 +44,7 @@ function routinePoints(log: DayLog): number {
 
 /**
  * Recompute the live score from the day's activity:
- *   routine rituals + (tasks done × 8) + (the #1 task → +25).
+ *   routine rituals + (tasks done × 8) + (the #1 task → +25) + (pomodoros × 5).
  */
 export function computeScore(log: DayLog, tasks: Task[]): number {
   const doneCount = tasks.filter((t) => t.done).length;
@@ -50,7 +52,8 @@ export function computeScore(log: DayLog, tasks: Task[]): number {
   return (
     routinePoints(log) +
     doneCount * POINTS.taskDone +
-    (topTaskDone ? POINTS.topTask : 0)
+    (topTaskDone ? POINTS.topTask : 0) +
+    log.pomodorosDone * POINTS.pomodoro
   );
 }
 
