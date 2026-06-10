@@ -99,6 +99,12 @@ Nothing leaves your device — unless you turn on cloud sync, and then only your
 
 [MIT](./LICENSE) — do whatever you want with it.
 
+## More from Skylar
+
+- [**ANSIO**](https://github.com/SkylarWJY/ANSIO-conversational) — the first conversational growth engineer for creators
+- [**skylarnyc.com**](https://skylarnyc.com) — NYC date-spot guide: 100 review-backed picks
+- More projects → [github.com/SkylarWJY](https://github.com/SkylarWJY)
+
 <div align="center">
 
 ---
